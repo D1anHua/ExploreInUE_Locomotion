@@ -3,11 +3,13 @@
 
 #include "AbilitySystem/TalesAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
+#include "Character/TalesCharacter.h"
+#include "Character/TalesCharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // 给定一个初始值, 确保MaxHealth不会大于这个初始值
 UTalesAttributeSetBase::UTalesAttributeSetBase()
-	:MaxHealth(10000.f), MaxStamina(10000.f)
+	:MaxHealth(10000.f), MaxStamina(10000.f), VelocityZoom(1.f), MinVelocityZoom(0.6f), MaxVelocityZoom(1.4f)
 {
 }
 
@@ -21,6 +23,15 @@ void UTalesAttributeSetBase::PostGameplayEffectExecute(const FGameplayEffectModC
 	else if(Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
 		SetStamina(FMath::Clamp(GetStamina(), 0.f, GetMaxStamina()));
+	}
+	else if(Data.EvaluatedData.Attribute == GetVelocityZoomAttribute())
+	{
+		ATalesCharacter* OwningCharacter = Cast<ATalesCharacter>(GetOwningActor());
+		UTalesCharacterMovementComponent* CharacterMovementComponent = OwningCharacter ? OwningCharacter->GetTalesCharacterMovement() : nullptr;
+		if(CharacterMovementComponent)
+		{
+			CharacterMovementComponent->SetVelocityZoom(FMath::Clamp(GetVelocityZoom(), MinVelocityZoom, MaxVelocityZoom));
+		}
 	}
 }
 
@@ -51,5 +62,10 @@ void UTalesAttributeSetBase::OnRep_Stamina(const FGameplayAttributeData& OldStam
 void UTalesAttributeSetBase::OnRep_MaxStamina(const FGameplayAttributeData& OldMaxStamina)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTalesAttributeSetBase, MaxStamina, OldMaxStamina);
+}
+
+void UTalesAttributeSetBase::OnRep_VelocityZoom(const FGameplayAttributeData& OldVelocityZoom)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTalesAttributeSetBase, MaxStamina, OldVelocityZoom);
 }
 

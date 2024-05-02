@@ -17,3 +17,14 @@ struct FCharacterData
 	// UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Animation")
 	// class UCharacterAnimDataAsset* CharacterAnimDataAsset;
 };
+
+UCLASS(BlueprintType, Blueprintable)
+class UItemStaticData : public UObject
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FName Name;
+	
+};

@@ -20,7 +20,7 @@ void UTalesGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	for(auto GameplayEffect : OngoingEffectsToApplyOnStart)
 	{
 		if(!GameplayEffect.Get()) continue;
-		if(auto AbilitySystem = GetTalesAbilitySystemComponentFromActorInfo())
+		if(UAbilitySystemComponent* AbilitySystem = ActorInfo->AbilitySystemComponent.Get())
 		{
 			FGameplayEffectSpecHandle SpecHandle = AbilitySystem->MakeOutgoingSpec(GameplayEffect, 1, EffectContext);
 			if(SpecHandle.IsValid())
@@ -38,7 +38,7 @@ void UTalesGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		for(auto GameplayEffect : OngoingEffectsToRemoveOnEnd)
 		{
 			if(!GameplayEffect.Get()) continue;
-			if(auto AbilityComponent = GetTalesAbilitySystemComponentFromActorInfo())
+			if(auto AbilityComponent = ActorInfo->AbilitySystemComponent.Get())
 			{
 				FGameplayEffectSpecHandle SpecHandle = AbilityComponent->MakeOutgoingSpec(GameplayEffect, 1, EffectContext);
 				if(SpecHandle.IsValid())
@@ -60,7 +60,6 @@ void UTalesGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 
 void UTalesGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 	if(IsInstantiated())
 	{
 		for(FActiveGameplayEffectHandle ActiveEffectHandle : RemoveOnEndEffectHandles)
@@ -73,6 +72,7 @@ void UTalesGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, 
 
 		RemoveOnEndEffectHandles.Empty();
 	}
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 UTalesAbilitySystemCompBase* UTalesGameplayAbility::GetTalesAbilitySystemComponentFromActorInfo() const

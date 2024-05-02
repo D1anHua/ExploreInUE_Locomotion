@@ -150,12 +150,12 @@ void UTalesCharacterMovementComponent::InitializeComponent()
 void UTalesCharacterMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	OwningPlayerAnimInstace = CharacterOwner->GetMesh()->GetAnimInstance();
+	OwningPlayerAnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
 
-	if(OwningPlayerAnimInstace)
+	if(OwningPlayerAnimInstance)
 	{
 		// OwningPlayerAnimInstace->OnMontageEnded.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
-		OwningPlayerAnimInstace->OnMontageBlendingOut.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
+		OwningPlayerAnimInstance->OnMontageBlendingOut.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
 	}
 }
 
@@ -177,18 +177,18 @@ FVector UTalesCharacterMovementComponent::GetUnRotatedClimbVelocity() const
 float UTalesCharacterMovementComponent::GetMaxSpeed() const
 {
 	// Set Sprint Max Speed
-	if(IsMovementMode(MOVE_Walking) && Safe_bWantToSprint && !IsCrouching()) return MaxSprintSpeed;
+	if(IsMovementMode(MOVE_Walking) && Safe_bWantToSprint && !IsCrouching()) return MaxSprintSpeed * VelocityZoom;
 
 	// Set Other Movement mode's Max Speed
-	if(MovementMode != MOVE_Custom) return Super::GetMaxSpeed();
+	if(MovementMode != MOVE_Custom) return Super::GetMaxSpeed() * VelocityZoom;
 	switch (CustomMovementMode)
 	{
 	case CMOVE_Slide:
-		return MaxSlideSpeed;
+		return MaxSlideSpeed * VelocityZoom;
 	case CMOVE_Prone:
-		return ProneMaxSpeed;
+		return ProneMaxSpeed * VelocityZoom;
 	case CMOVE_Climb:
-		return MaxClimbSpeed;
+		return MaxClimbSpeed * VelocityZoom;
 	default:
 		UE_LOG(LogTemp, Fatal, TEXT("Invalid Movement Mode"))
 		return  -1.f;
@@ -1225,7 +1225,7 @@ LINE(LineStart, LineStart + UpdatedComponent->GetForwardVector() * ClimbReachDis
 
 	if(ensureAlways(TransitionClimbUpMontage) && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		OwningPlayerAnimInstace->Montage_Play(TransitionClimbUpMontage);
+		OwningPlayerAnimInstance->Montage_Play(TransitionClimbUpMontage);
 		if(IsServer())
 		{
 			// Proxy_bClimbStart = !Proxy_bClimbStart;
@@ -1255,7 +1255,7 @@ bool UTalesCharacterMovementComponent::CanClimbDown()
 		if(ensureAlways(TransitionClimbDownMontage) && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 		{
 			SafeMoveUpdatedComponent(UpdatedComponent->GetForwardVector() * ClimbDownWalkableSurfaceTraceOffset, UpdatedComponent->GetComponentRotation(), false, WalkableSurfaceHit);
-			OwningPlayerAnimInstace->Montage_Play(TransitionClimbDownMontage);
+			OwningPlayerAnimInstance->Montage_Play(TransitionClimbDownMontage);
 			if(IsServer())
 			{
 				// Proxy_bClimbStart = !Proxy_bClimbStart;

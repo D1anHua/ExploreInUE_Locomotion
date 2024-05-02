@@ -8,6 +8,7 @@
 #include "GameFramework/Character.h"
 // GAS
 #include "AbilitySystemInterface.h"
+#include "TalesCharacterMovementComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "System/TalesRunnerTypes.h"
 
@@ -45,12 +46,19 @@ public:
 	virtual void PawnClientRestart() override;
 
 	// Help Function
-	FORCEINLINE UTalesCharacterMovementComponent* GetTalesCharacterMovement() const { return TalesCharacterMovementComponent; }
 	FCollisionQueryParams GetIgnoreCharacterParams() const;
 	FORCEINLINE UTalesInventoryComponent* GetTalesInventoryComponent() const { return InventoryComponent; }
 
 	void SetSwardMesh(UStaticMesh* InSwardMesh);
 	void SetShieldMesh(UStaticMesh* InShieldMesh);
+
+	// ----------------------------------- CharacterMovementComponent ----------------------------------
+	//! @note 说明: 以下一系列函数属于是 CharacterMovementComponent的接口函数, 用于设置CharacterMovementComponent的方法
+	FORCEINLINE UTalesCharacterMovementComponent* GetTalesCharacterMovement() const { return TalesCharacterMovementComponent; }
+	FORCEINLINE void Sprint()   const {TalesCharacterMovementComponent->SprintPressed(); }
+	FORCEINLINE void UnSprint() const {TalesCharacterMovementComponent->SprintReleased(); };
+	
+	
 
 #pragma region GASCourse
 public:
@@ -110,6 +118,8 @@ protected:
 	UInputAction* Input_LookMouse;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Input_ClimbHop;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Input_Crouch;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UTalesInventoryComponent> InventoryComponent;
@@ -153,9 +163,15 @@ protected:
 	void SprintStop(const FInputActionInstance& Instance);
 	void LookMouse(const FInputActionInstance& Instance);
 	void ClimbHop(const FInputActionInstance& Instance);
+	void OnJumpActionStart(const FInputActionInstance& Instance);
+	void OnCrouchActionStart(const FInputActionInstance& Instance);
+	void OnCrouchActionEnd(const FInputActionInstance& Instance);
+	void OnSprintActionStart(const FInputActionInstance& Instance);
+	void OnSprintActionEnd(const FInputActionInstance& Instance);
 	
 public:
 	virtual void Jump() override;
+	virtual void Landed(const FHitResult& Hit) override;
 	virtual void StopJumping() override;
 
 	virtual void BeginPlay() override;
@@ -209,4 +225,26 @@ public:
 	// Interact Begin
 	void ActivateInteractUI();
 	void UnActivateInteractUI();
+	
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+	// Gameplay Event
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTag JumpEventTag;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer InAirTags;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer CrouchTags;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer SprintTags;
+
+protected:
+	// Gameplay Effect
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	TSubclassOf<UGameplayEffect> CrouchStateEffect;
 };

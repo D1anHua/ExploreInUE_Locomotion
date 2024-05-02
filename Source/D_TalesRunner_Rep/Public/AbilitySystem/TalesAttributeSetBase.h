@@ -58,6 +58,16 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "MaxStamina", ReplicatedUsing = OnRep_MaxStamina)
 	FGameplayAttributeData MaxStamina;
 	ATTRIBUTE_ACCESSORS(UTalesAttributeSetBase, MaxStamina)
+
+	//! @brief 用来设置速度的缩放倍数
+	UPROPERTY(BlueprintReadOnly, Category = "VelocityZoom", ReplicatedUsing = OnRep_VelocityZoom)
+	FGameplayAttributeData VelocityZoom;
+	ATTRIBUTE_ACCESSORS(UTalesAttributeSetBase, VelocityZoom)
+	
+	UPROPERTY(BlueprintReadOnly, Category = "MinVelocityZoom")
+	float MinVelocityZoom;
+	UPROPERTY(BlueprintReadOnly, Category = "MaxVelocityZoom")
+	float MaxVelocityZoom;
 	
 protected:
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
@@ -71,4 +81,6 @@ protected:
 	virtual void OnRep_Stamina(const FGameplayAttributeData& OldStamina);
 	UFUNCTION()
 	virtual void OnRep_MaxStamina(const FGameplayAttributeData& OldMaxStamina);
+	UFUNCTION()
+	virtual void OnRep_VelocityZoom(const FGameplayAttributeData& OldVelocityZoom);
 };

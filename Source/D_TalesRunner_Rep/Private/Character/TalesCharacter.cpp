@@ -21,6 +21,7 @@
 #include "AbilitySystem/TalesAbilitySystemCompBase.h"
 #include "AbilitySystem/TalesAttributeSetBase.h"
 #include "DataAsset/CharacterDataAsset.h"
+#include "AbilitySystemLog.h"
 
 // Network
 #include "Net/UnrealNetwork.h"
@@ -166,14 +167,16 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	// General
 	if(ensureAlways(Input_Move))	 InputComp->BindAction(Input_Move,   ETriggerEvent::Triggered, this, &ATalesCharacter::MoveFunc);
 	if(ensureAlways(Input_ClimbMove)) InputComp->BindAction(Input_ClimbMove, ETriggerEvent::Triggered, this, &ATalesCharacter::ClimbMoveFunc);
-	if(ensureAlways(Input_Jump))	 InputComp->BindAction(Input_Jump,   ETriggerEvent::Triggered, this, &ATalesCharacter::Jump);
+	if(ensureAlways(Input_Jump))	 InputComp->BindAction(Input_Jump,   ETriggerEvent::Triggered, this, &ATalesCharacter::OnJumpActionStart);
 	if(ensureAlways(Input_ClimbHop)) InputComp->BindAction(Input_ClimbHop, ETriggerEvent::Triggered, this, &ATalesCharacter::ClimbHop);
 	// if(ensureAlways(Input_Jump))	 InputComp->BindAction(Input_Jump,   ETriggerEvent::Completed, this, &ATalesCharacter::StopJumping);
 	if(ensureAlways(Input_LookMouse))InputComp->BindAction(Input_LookMouse, ETriggerEvent::Triggered, this, &ATalesCharacter::LookMouse);
+	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Started, this, &ATalesCharacter::OnCrouchActionStart);
+	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Completed, this, &ATalesCharacter::OnCrouchActionEnd);
 	
 	// Sprint while key is held
-	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::SprintStart);
-	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Completed, this, &ATalesCharacter::SprintStop);
+	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::OnSprintActionStart);
+	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Completed, this, &ATalesCharacter::OnSprintActionEnd);
 
 }
 
@@ -280,12 +283,62 @@ void ATalesCharacter::ClimbHop(const FInputActionInstance& Instance)
 	}
 }
 
+void ATalesCharacter::OnJumpActionStart(const FInputActionInstance& Instance)
+{
+	FGameplayEventData Payload;
+
+	Payload.Instigator = this;
+	Payload.EventTag = JumpEventTag;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, JumpEventTag, Payload);
+}
+
+void ATalesCharacter::OnCrouchActionStart(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->TryActivateAbilitiesByTag(CrouchTags, true);
+	}
+}
+
+void ATalesCharacter::OnCrouchActionEnd(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->CancelAbilities(&CrouchTags);
+	}
+}
+
+void ATalesCharacter::OnSprintActionStart(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->TryActivateAbilitiesByTag(SprintTags, true);
+	}
+}
+
+void ATalesCharacter::OnSprintActionEnd(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->CancelAbilities(&SprintTags);
+	}
+}
+
 void ATalesCharacter::Jump()
 {
 	bPressedTalesJump = true;
 	Super::Jump();
 	bPressedJump = false;
 	// UE_LOG(LogTemp, Warning, TEXT("Jump is Server: %d"), HasAuthority());
+}
+
+void ATalesCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->RemoveActiveEffectsWithTags(InAirTags);
+	}
 }
 
 void ATalesCharacter::StopJumping()
@@ -319,6 +372,35 @@ void ATalesCharacter::UnActivateInteractUI()
 	{
 		InteractUI->RemoveFromParent();
 	}
+}
+
+void ATalesCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	if(!CrouchStateEffect.Get()) return;
+	if(AbilitySystemCompBase)
+	{
+		FGameplayEffectContextHandle EffectContext = AbilitySystemCompBase->MakeEffectContext();
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemCompBase->MakeOutgoingSpec(CrouchStateEffect.Get(), 1, EffectContext);
+		if(SpecHandle.IsValid())
+		{
+			FActiveGameplayEffectHandle ActiveGEHandle = AbilitySystemCompBase->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			if(!ActiveGEHandle.WasSuccessfullyApplied())
+			{
+				ABILITY_LOG(Log, TEXT("Ability %s failed to apply crouch effect %s"), *GetNameSafe(CrouchStateEffect));
+			}
+		}
+	}
+}
+
+void ATalesCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	if(AbilitySystemCompBase && CrouchStateEffect.Get())
+	{
+		AbilitySystemCompBase->RemoveActiveGameplayEffectBySourceEffect(CrouchStateEffect, AbilitySystemCompBase);
+	}
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 }
 
 FCollisionQueryParams ATalesCharacter::GetIgnoreCharacterParams() const

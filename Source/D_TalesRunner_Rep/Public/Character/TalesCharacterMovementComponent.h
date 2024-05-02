@@ -34,6 +34,10 @@ class D_TALESRUNNER_REP_API UTalesCharacterMovementComponent : public UCharacter
 {
 	GENERATED_BODY()
 
+public:
+	FORCEINLINE float GetVelocityZoom() const {return VelocityZoom; }
+	FORCEINLINE void SetVelocityZoom(float InVelocityZoom) { VelocityZoom = InVelocityZoom; }
+	
 private:
 	//! Sprint_MaxWalkSpeed
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Speed")
@@ -147,6 +151,10 @@ private:
 	int TransitionRMS_ID;
 	FString MontageName;
 
+protected:
+	//! @brief 用来设置速度的倍率
+	float VelocityZoom = 1.f;
+	
 public:
 	// Replicated
 	UPROPERTY(ReplicatedUsing = OnRep_DashStart) bool Proxy_bDashStart;
@@ -174,7 +182,7 @@ public:
 	virtual void BeginPlay() override;
 	
 	UPROPERTY()
-	UAnimInstance* OwningPlayerAnimInstace;
+	UAnimInstance* OwningPlayerAnimInstance;
 	
 	// Helper Function
 	UFUNCTION(BlueprintPure) bool IsClimbing() const { return IsCustomMovementMode(CMOVE_Climb); }

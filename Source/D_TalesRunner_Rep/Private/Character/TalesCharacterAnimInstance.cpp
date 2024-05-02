@@ -145,7 +145,7 @@ void UTalesCharacterAnimInstance::GetVelocityComponent()
 
 void UTalesCharacterAnimInstance::GetShouldMove()
 {
-	bShouldMove = TalesCharacterMovementComponent->GetCurrentAcceleration().Size() > 1 && GroundSpeed > UE_KINDA_SMALL_NUMBER && !TalesCharacterMovementComponent->IsFalling();
+	bShouldMove = TalesCharacterMovementComponent->GetCurrentAcceleration().Size() > 0 && GroundSpeed > UE_KINDA_SMALL_NUMBER && !TalesCharacterMovementComponent->IsFalling();
 }
 
 void UTalesCharacterAnimInstance::GetJumpParams()
