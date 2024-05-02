@@ -38,6 +38,12 @@ ATalesCharacter::ATalesCharacter(const FObjectInitializer& ObjectInitializer)
 	TalesCharacterMovementComponent->SetIsReplicated(true);
 
 	InventoryComponent = CreateDefaultSubobject<UTalesInventoryComponent>("TalesInventoryComponent");
+	InventoryComponent->SetIsReplicated(true);
+	
+	// GAS
+	AbilitySystemCompBase = CreateDefaultSubobject<UTalesAbilitySystemCompBase>(TEXT("AbilitySystemComponet"));
+	AbilitySystemCompBase->SetIsReplicated(true);
+	AbilitySystemCompBase->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>("SpringArmComp");
 	SpringArmComp->SetupAttachment(RootComponent);
@@ -68,10 +74,6 @@ ATalesCharacter::ATalesCharacter(const FObjectInitializer& ObjectInitializer)
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>("ShieldMesh");
 	ShieldMesh->SetupAttachment(GetMesh(), TEXT("ShieldSocket"));
 
-	// GAS
-	AbilitySystemCompBase = CreateDefaultSubobject<UTalesAbilitySystemCompBase>(TEXT("AbilitySystemComponet"));
-	AbilitySystemCompBase->SetIsReplicated(true);
-	AbilitySystemCompBase->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	AttributeSetBase = CreateDefaultSubobject<UTalesAttributeSetBase>(TEXT("AttributeSet"));
 }
@@ -128,6 +130,7 @@ void ATalesCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATalesCharacter, CharacterData);
+	DOREPLIFETIME(ATalesCharacter, InventoryComponent);
 }
 
 void ATalesCharacter::AddInputMappingContext(UInputMappingContext* ContextToAdd, int32 InPriority)

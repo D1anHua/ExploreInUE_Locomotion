@@ -4,16 +4,34 @@
 #include "Inventory/TalesInventoryComponent.h"
 #include "Character/TalesCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/ActorChannel.h"
 #include "Inventory/TalesInventorInteractUI.h"
 #include "Inventory/TalesInventoryInterface.h"
 #include "Inventory/TalesInventoryUserWidget.h"
 #include "Inventory/Props/TalesMoney.h"
+
+#include "Inventory/Data/InventoryItemInstance.h"
+
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
+
+
+// Cheat Debug Config
+static TAutoConsoleVariable<int32> CVarDebugInventory(
+	TEXT("ShowDebugInventory"),
+	0,
+	TEXT("Draws debug info about inventory")
+	TEXT("0: Off/n")
+	TEXT("1: On/n"),
+	ECVF_Cheat
+);
 
 // Sets default values for this component's properties
 UTalesInventoryComponent::UTalesInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetIsReplicatedByDefault(true);
+	
 	InventoryMoneyAmount = 0;
 	InventoryMaxHeart = 8;
 	InventoryHeartNow = 7.5;
@@ -23,6 +41,20 @@ UTalesInventoryComponent::UTalesInventoryComponent()
 void UTalesInventoryComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
+}
+
+bool UTalesInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething =  Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	for(FInventoryListItem& Item : InventoryList.GetItemsRef())
+	{
+		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
+		if(IsValid(ItemInstance))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+		}
+	}
+	return WroteSomething;
 }
 
 // Called when the game starts
@@ -42,6 +74,16 @@ void UTalesInventoryComponent::BeginPlay()
 	{
 		 InventoryWidget = CreateWidget<UTalesInventoryUserWidget>(UGameplayStatics::GetPlayerController(GetWorld(), 0), InventoryWidgetClass);
 	}
+
+#if WITH_EDITORONLY_DATA
+	if(GetOwner()->HasAuthority())
+	{
+		for(const auto ItemClass : DefaultItems)
+		{
+			InventoryList.AddItem(ItemClass);
+		}
+	}
+#endif
 }
 
 void UTalesInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -49,6 +91,27 @@ void UTalesInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	PrimaryInteractTraceByFoot();
+
+	// Debug Cheat
+	const bool bShowDebug = CVarDebugInventory.GetValueOnAnyThread() != 0;
+	if(bShowDebug)
+	{
+		for(FInventoryListItem& Item : InventoryList.GetItemsRef())
+		{
+			UInventoryItemInstance* ItemInstance = Item.ItemInstance;
+			const UItemStaticData* ItemStaticData = ItemInstance->GetItemStaticData();
+			if(IsValid(ItemInstance) && IsValid(ItemStaticData))
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Blue, FString::Printf(TEXT("Item: %s"), *ItemStaticData->Name.ToString()));
+			}
+		}
+	}
+}
+
+void UTalesInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UTalesInventoryComponent, InventoryList);
 }
 
 void UTalesInventoryComponent::SetSwardSlot(FTalesInventoryItemSlot NewSwardSlot)

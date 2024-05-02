@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+
+// Inventory Data
 #include "TalesInventoroyItem.h"
+#include "Inventory/Data/InventoryList.h"
+
+#include "System/TalesRunnerTypes.h"
 #include "TalesInventoryComponent.generated.h"
 
 class UTalesInventoryUserWidget;
@@ -34,7 +39,15 @@ public:
 	// FMoneyAmountChangeDelegate MoneyAmountChangeDelegate;
 	
 	virtual void InitializeComponent() override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+public:
 	//! GetFunction
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	FORCEINLINE int32 GetMoneyAmount() const { return InventoryMoneyAmount; }
@@ -74,10 +87,6 @@ public:
 	void OnCharacterOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 	
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	//! Money Variable
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Money")	
 	int32 InventoryMoneyAmount = 0;
@@ -116,4 +125,14 @@ private:
 	void PrimaryInteractTraceByFoot();
 	// void SetInventoryData(TMultiMap<FName, FTalesInventoryItemSlot>& Data, FTalesInventoryItemSlot NewData, FTalesInventoryItemSlot OldData);
 	void PackageDataChange_Eatable(FTalesInventoryItemSlot ItemEatable);
+
+	// GAS Course
+protected:
+	UPROPERTY(Replicated)
+	FInventoryList InventoryList;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditDefaultsOnly, Category = "EditOnly")
+	TArray<TSubclassOf<UItemStaticData>> DefaultItems;
+#endif
 };

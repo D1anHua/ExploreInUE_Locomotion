@@ -121,7 +121,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Input_Crouch;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated)
 	TObjectPtr<UTalesInventoryComponent> InventoryComponent;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
