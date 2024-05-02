@@ -1,10 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesInfoCueUserWidget.h"
+#include "Inventory/UserWidget/TalesInfoCueUserWidget.h"
 #include "Inventory/TalesInventoroyItem.h"
-#include "Inventory/Props/TalesHealthBarUserWidget.h"
-#include "Inventory/Props/TalesInventoryPropsPowerSward.h"
+#include "Inventory/UserWIdget/TalesHealthBarUserWidget.h"
+#include "Inventory/UserWidget/TalesInventoryPropsPowerSward.h"
 #include "Components/Image.h"
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"

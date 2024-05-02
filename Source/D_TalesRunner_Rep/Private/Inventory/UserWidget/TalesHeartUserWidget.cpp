@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesHeartUserWidget.h"
+#include "Inventory/UserWidget/TalesHeartUserWidget.h"
 
 #include "Components/Image.h"
 

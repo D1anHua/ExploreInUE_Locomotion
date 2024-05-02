@@ -15,9 +15,9 @@ class D_TALESRUNNER_REP_API UInventoryItemInstance : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool IsSupportedForNetworking() const override { return true; }
-	
 	virtual void Init(TSubclassOf<class UItemStaticData> InItemStaticDataClass);
+	
+	virtual bool IsSupportedForNetworking() const override { return true; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	const UItemStaticData* GetItemStaticData() const;

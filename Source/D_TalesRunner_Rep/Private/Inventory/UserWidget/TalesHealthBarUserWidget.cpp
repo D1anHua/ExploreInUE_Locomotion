@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesHealthBarUserWidget.h"
+#include "Inventory/UserWidget/TalesHealthBarUserWidget.h"
 
 #include "Character/TalesCharacter.h"
 #include "Components/WrapBox.h"
 #include "Inventory/TalesInventoryComponent.h"
-#include "Inventory/Props/TalesHeartUserWidget.h"
+#include "Inventory/UserWidget/TalesHeartUserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 void UTalesHealthBarUserWidget::NativeOnInitialized()

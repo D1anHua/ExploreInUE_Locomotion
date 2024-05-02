@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesItemButton.h"
+#include "Inventory/UserWidget/TalesItemButton.h"
 
 UTalesItemButton::UTalesItemButton()
 {

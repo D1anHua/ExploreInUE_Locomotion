@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "TalesInventoroyItem.h"
 #include "Blueprint/UserWidget.h"
-#include "Props/TalesSlotUserWidget.h"
+#include "UserWidget/TalesSlotUserWidget.h"
 #include "TalesInventoryMainLeftUserWidget.generated.h"
 
 #define BUTTON_ITEM_NAME {"Sward", "Shield", "Eatable"}

@@ -8,7 +8,7 @@
 #include "Inventory/TalesInventorInteractUI.h"
 #include "Inventory/TalesInventoryInterface.h"
 #include "Inventory/TalesInventoryUserWidget.h"
-#include "Inventory/Props/TalesMoney.h"
+#include "Inventory/UserWidget/TalesMoney.h"
 
 #include "Inventory/Data/InventoryItemInstance.h"
 

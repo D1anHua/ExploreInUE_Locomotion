@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesMoney.h"
+#include "Inventory/UserWidget/TalesMoney.h"
 
 // Sets default values
 ATalesMoney::ATalesMoney()

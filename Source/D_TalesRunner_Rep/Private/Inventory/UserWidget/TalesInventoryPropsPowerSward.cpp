@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesInventoryPropsPowerSward.h"
+#include "Inventory/UserWidget/TalesInventoryPropsPowerSward.h"
 
 #include "Components/TextBlock.h"
 

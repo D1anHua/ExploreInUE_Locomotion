@@ -5,7 +5,7 @@
 #include "Character/TalesCharacter.h"
 #include "Components/TextBlock.h"
 #include "Inventory/TalesInventoryComponent.h"
-#include "Inventory/Props/TalesInfoCueUserWidget.h"
+#include "Inventory/UserWidget/TalesInfoCueUserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 void UTalesInventoryUserWidget::NativeConstruct()

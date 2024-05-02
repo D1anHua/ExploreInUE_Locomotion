@@ -7,9 +7,9 @@
 #include "Components/Image.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/WrapBox.h"
-#include "Inventory/Props/TalesSlotUserWidget.h"
+#include "Inventory/UserWidget/TalesSlotUserWidget.h"
 #include "Inventory/TalesInventoryComponent.h"
-#include "Inventory/Props/TalesItemButton.h"
+#include "Inventory/UserWidget/TalesItemButton.h"
 #include "Kismet/GameplayStatics.h"
 
 

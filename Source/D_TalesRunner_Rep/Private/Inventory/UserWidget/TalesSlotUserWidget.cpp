@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/Props/TalesSlotUserWidget.h"
+#include "Inventory/UserWidget/TalesSlotUserWidget.h"
 
 #include "Character/TalesCharacter.h"
 #include "Components/Border.h"
@@ -12,9 +12,9 @@
 #include "Inventory/TalesInventoryComponent.h"
 #include "Inventory/TalesInventoryMainLeftUserWidget.h"
 #include "Inventory/TalesInventoryUserWidget.h"
-#include "Inventory/Props/TalesHealthBarUserWidget.h"
-#include "Inventory/Props/TalesInfoCueUserWidget.h"
-#include "Inventory/Props/TalesInventoryUWActionMenu.h"
+#include "Inventory/UserWidget/TalesHealthBarUserWidget.h"
+#include "Inventory/UserWidget/TalesInfoCueUserWidget.h"
+#include "Inventory/UserWidget/TalesInventoryUWActionMenu.h"
 #include "Kismet/GameplayStatics.h"
 
 void UTalesSlotUserWidget::NativeOnInitialized()
