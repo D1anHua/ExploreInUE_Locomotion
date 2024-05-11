@@ -74,33 +74,6 @@ bool UTalesInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutB
 			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
 		}
 	}
-	
-	for(FInventoryListItem& Item : SwardList.GetItemsRef())
-	{
-		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
-		if(IsValid(ItemInstance))
-		{
-			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
-		}
-	}
-	
-	for(FInventoryListItem& Item : ShieldList.GetItemsRef())
-	{
-		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
-		if(IsValid(ItemInstance))
-		{
-			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
-		}
-	}
-	
-	for(FInventoryListItem& Item : EatableList.GetItemsRef())
-	{
-		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
-		if(IsValid(ItemInstance))
-		{
-			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
-		}
-	}
 	return WroteSomething;
 }
 
@@ -171,11 +144,8 @@ void UTalesInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UTalesInventoryComponent, InventoryList);
-	DOREPLIFETIME(UTalesInventoryComponent, SwardList);
-	DOREPLIFETIME(UTalesInventoryComponent, ShieldList);
-	DOREPLIFETIME(UTalesInventoryComponent, EatableList);
-	DOREPLIFETIME(UTalesInventoryComponent, CurrentShieldItem);
-	DOREPLIFETIME(UTalesInventoryComponent, CurrentSwardItem);
+	DOREPLIFETIME(UTalesInventoryComponent, CurrentItem);
+	// TODO: 完善相应的背包系统
 }
 
 void UTalesInventoryComponent::SetSwardSlot(FTalesInventoryItemSlot NewSwardSlot)
@@ -308,20 +278,6 @@ void UTalesInventoryComponent::AddItem(TSubclassOf<UItemStaticData> InItemStatic
 {
 	if(GetOwner()->HasAuthority())
 	{
-		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
-		{
-		case SwardItem:
-			SwardList.AddItem(InItemStaticDataClass);
-			break;
-		case ShieldItem:
-			ShieldList.AddItem(InItemStaticDataClass);
-			break;
-		case EatableItem:
-			EatableList.AddItem(InItemStaticDataClass);
-			break;
-		default:
-			break;
-		}
 		InventoryList.AddItem(InItemStaticDataClass);
 	}
 }
@@ -330,20 +286,6 @@ void UTalesInventoryComponent::AddItemInstance(UInventoryItemInstance* InItemIns
 {
 	if(GetOwner()->HasAuthority())
 	{
-		switch (InItemInstance->GetItemStaticData()->ItemType)
-		{
-		case SwardItem:
-			SwardList.AddItem(InItemInstance);
-			break;
-		case ShieldItem:
-			ShieldList.AddItem(InItemInstance);
-			break;
-		case EatableItem:
-			EatableList.AddItem(InItemInstance);
-			break;
-		default:
-			break;
-		}
 		InventoryList.AddItem(InItemInstance);
 	}
 }
@@ -352,20 +294,6 @@ void UTalesInventoryComponent::RemoveItem(TSubclassOf<UItemStaticData> InItemSta
 {
 	if(GetOwner()->HasAuthority())
 	{
-		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
-		{
-		case SwardItem:
-			SwardList.AddItem(InItemStaticDataClass);
-			break;
-		case ShieldItem:
-			ShieldList.AddItem(InItemStaticDataClass);
-			break;
-		case EatableItem:
-			EatableList.AddItem(InItemStaticDataClass);
-			break;
-		default:
-			break;
-		}
 		InventoryList.RemoveItem(InItemStaticDataClass);
 	}
 }
@@ -383,31 +311,6 @@ void UTalesInventoryComponent::EquipItem(TSubclassOf<UItemStaticData> InItemStat
 				break;
 			}
 		}
-		
-		FInventoryList* List = nullptr;
-		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
-		{
-		case SwardList:
-			List = &SwardList;
-			break;
-		case ShieldList:
-			List = &ShieldList;
-			break;
-		default:
-			break;
-		}
-		if(List != nullptr)
-		{
-			for(auto Item : List->GetItemsRef())
-			{
-				if(Item.ItemInstance->ItemStaticDataClass == InItemStaticDataClass)
-				{
-					Item.ItemInstance->OnEquipped(GetOwner());
-					CurrentItem = Item.ItemInstance;
-					break;
-				}
-			}
-		}
 	}
 }
 
@@ -422,31 +325,6 @@ void UTalesInventoryComponent::EquipItemInstance(UInventoryItemInstance* InItemI
 				Item.ItemInstance->OnEquipped(GetOwner());
 				CurrentItem = Item.ItemInstance;
 				break;
-			}
-		}
-		
-		FInventoryList* List = nullptr;
-		switch (InItemInstance->GetItemStaticData()->ItemType)
-		{
-		case SwardList:
-			List = &SwardList;
-			break;
-		case ShieldList:
-			List = &ShieldList;
-			break;
-		default:
-			break;
-		}
-		if(List != nullptr)
-		{
-			for(auto Item : List->GetItemsRef())
-			{
-				if(Item.ItemInstance == InItemInstance)
-				{
-					Item.ItemInstance->OnEquipped(GetOwner());
-					CurrentItem = Item.ItemInstance;
-					break;
-				}
 			}
 		}
 	}

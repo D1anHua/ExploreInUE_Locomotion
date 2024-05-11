@@ -238,8 +238,6 @@ void ATalesCharacter::SprintStart(const FInputActionInstance& Instance)
 	if(GetVelocity().Length() != 0.f)
 	{
 		bIsSprint = true;
-		// GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-		// GetCharacterMovement()->MaxAcceleration = SprintAcceleration;
 		// TimeLine to Control Fov
 		SprintTimeLineComp->Play();
 		SprintLineNiagaraComp->Activate();
@@ -247,8 +245,6 @@ void ATalesCharacter::SprintStart(const FInputActionInstance& Instance)
 		{
 			CurrentSprintShake =  GetWorld()->GetFirstPlayerController()->PlayerCameraManager->StartCameraShake(SprintShake, 1);
 		}
-		// JetPackThrusterComp->Activate();
-		// JetPackThrusterAudioComp->Play();
 		// TODO: Add Camera Shake later, But not use today.
 
 	}	
@@ -259,8 +255,6 @@ void ATalesCharacter::SprintStop(const FInputActionInstance& Instance)
 	TalesCharacterMovementComponent->SprintReleased();
 	if(bIsSprint)
 	{
-		// GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
-		// GetCharacterMovement()->MaxAcceleration = DefaultAcceleration;
 		bIsSprint = false;
 		SprintTimeLineComp->Reverse();
 		SprintLineNiagaraComp->Deactivate();
@@ -269,8 +263,6 @@ void ATalesCharacter::SprintStop(const FInputActionInstance& Instance)
 			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->StopCameraShake(CurrentSprintShake, true);
 			CurrentSprintShake = nullptr;
 		}
-		// JetPackThrusterComp->Deactivate();
-		// JetPackThrusterAudioComp->Stop();
 	}
 }
 

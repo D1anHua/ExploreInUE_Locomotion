@@ -133,12 +133,7 @@ protected:
 	UPROPERTY(Replicated)
 	FInventoryList InventoryList;
 
-	UPROPERTY(Replicated)
-	FInventoryList		SwardList;
-	UPROPERTY(Replicated)
-	FInventoryList		ShieldList;
-	UPROPERTY(Replicated)
-	FInventoryList		EatableList;
+	// TODO: 完善背包系统, 之后再完善
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditDefaultsOnly, Category = "EditOnly")
@@ -182,9 +177,7 @@ protected:
 	void AddInventoryTags();
 
 	UPROPERTY(Replicated)
-	UInventoryItemInstance* CurrentSwardItem = nullptr;
-	UPROPERTY(Replicated)
-	UInventoryItemInstance* CurrentShieldItem = nullptr;
+	UInventoryItemInstance* CurrentItem = nullptr;
 
 	FDelegateHandle TagDelegateHandle;
 

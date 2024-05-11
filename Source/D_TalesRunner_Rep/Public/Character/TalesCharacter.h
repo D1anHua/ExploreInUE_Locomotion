@@ -132,8 +132,6 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArmComp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UCameraComponent>    CameraComp;
-	// UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	// TObjectPtr<USkeletalMeshComponent> JetPackComp;
 
 	// Sprint related Comp
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
@@ -150,11 +148,6 @@ protected:
 	TObjectPtr<UStaticMeshComponent> SwardMesh;
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> ShieldMesh;
-	//
-	// UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "JetPack|VFX")
-	// TObjectPtr<UNiagaraComponent> JetPackThrusterComp;
-	// UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "JetPack|SFX")
-	// TObjectPtr<UAudioComponent> JetPackThrusterAudioComp;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "CameraShake")
 	TSubclassOf<UCameraShakeBase> SprintShake;
