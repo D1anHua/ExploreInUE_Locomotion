@@ -24,6 +24,7 @@
 #include "AbilitySystemLog.h"
 
 // Network
+#include "Inventory/Data/InventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
 
 // TODO: Debug system include File, Delete later
@@ -180,7 +181,9 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	// Sprint while key is held
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::OnSprintActionStart);
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Completed, this, &ATalesCharacter::OnSprintActionEnd);
-
+	
+	if(ensureAlways(Input_Equip))	 InputComp->BindAction(Input_Equip,  ETriggerEvent::Triggered,   this, &ATalesCharacter::OnEquipItemTriggered);
+	if(ensureAlways(Input_Drop))	 InputComp->BindAction(Input_Drop  , ETriggerEvent::Triggered, this, &ATalesCharacter::OnDropItemTriggered);
 }
 
 
@@ -325,6 +328,22 @@ void ATalesCharacter::OnSprintActionEnd(const FInputActionInstance& Instance)
 	{
 		AbilitySystemCompBase->CancelAbilities(&SprintTags);
 	}
+}
+
+void ATalesCharacter::OnDropItemTriggered(const FInputActionInstance& Instance)
+{
+	FGameplayEventData EventPayload;
+	EventPayload.EventTag = UTalesInventoryComponent::DropItemTag;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UTalesInventoryComponent::DropItemTag, EventPayload);
+}
+
+void ATalesCharacter::OnEquipItemTriggered(const FInputActionInstance& Instance)
+{
+	FGameplayEventData EventPayload;
+	EventPayload.EventTag = UTalesInventoryComponent::EquipTag;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UTalesInventoryComponent::EquipTag, EventPayload);
 }
 
 void ATalesCharacter::Jump()

@@ -14,7 +14,8 @@
 				"GameplayAbilities",
 				"EnhancedInput",
 				"UMG",
-				"CoreUObject"
+				"CoreUObject",
+				"GameplayTags"
 			]
 		}
 	],
@@ -52,6 +53,10 @@
 		},
 		{
 			"Name": "MotionWarping",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayInsights",
 			"Enabled": true
 		}
 	]

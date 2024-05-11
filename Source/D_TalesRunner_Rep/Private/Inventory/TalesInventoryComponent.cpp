@@ -2,19 +2,26 @@
 
 
 #include "Inventory/TalesInventoryComponent.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayTagsManager.h"
 #include "Character/TalesCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Inventory/TalesInventorInteractUI.h"
 #include "Inventory/TalesInventoryInterface.h"
 #include "Inventory/TalesInventoryUserWidget.h"
-#include "Inventory/UserWidget/TalesMoney.h"
+#include "Inventory/Actor/TalesMoney.h"
 
 #include "Inventory/Data/InventoryItemInstance.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
+FGameplayTag UTalesInventoryComponent::PickItemActorTag;
+FGameplayTag UTalesInventoryComponent::EquipTag;
+FGameplayTag UTalesInventoryComponent::UnEquipTag;
+FGameplayTag UTalesInventoryComponent::DropItemTag;
 
 // Cheat Debug Config
 static TAutoConsoleVariable<int32> CVarDebugInventory(
@@ -36,6 +43,14 @@ UTalesInventoryComponent::UTalesInventoryComponent()
 	InventoryMaxHeart = 8;
 	InventoryHeartNow = 7.5;
 
+	// Gameplay Ability System
+	static bool bHandleAddingTags = false;
+	if(!bHandleAddingTags)
+	{
+		bHandleAddingTags = true;
+		UGameplayTagsManager::Get().OnLastChanceToAddNativeTags().AddUObject(this, &UTalesInventoryComponent::AddInventoryTags);
+	}
+
 }
 
 void UTalesInventoryComponent::InitializeComponent()
@@ -43,10 +58,42 @@ void UTalesInventoryComponent::InitializeComponent()
 	Super::InitializeComponent();
 }
 
+void UTalesInventoryComponent::PostLoad()
+{
+	Super::PostLoad();
+}
+
 bool UTalesInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool WroteSomething =  Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 	for(FInventoryListItem& Item : InventoryList.GetItemsRef())
+	{
+		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
+		if(IsValid(ItemInstance))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+		}
+	}
+	
+	for(FInventoryListItem& Item : SwardList.GetItemsRef())
+	{
+		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
+		if(IsValid(ItemInstance))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+		}
+	}
+	
+	for(FInventoryListItem& Item : ShieldList.GetItemsRef())
+	{
+		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
+		if(IsValid(ItemInstance))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+		}
+	}
+	
+	for(FInventoryListItem& Item : EatableList.GetItemsRef())
 	{
 		UInventoryItemInstance* ItemInstance = Item.ItemInstance;
 		if(IsValid(ItemInstance))
@@ -65,6 +112,8 @@ void UTalesInventoryComponent::BeginPlay()
 	if(TalesCharacterOwner)
 	{
 		auto CapsuleComp = TalesCharacterOwner->GetCapsuleComponent();
+
+		// @Todo: 后面需要删除这一部分: 不支持网络同步的数据结构
 		CapsuleComp->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnCharacterOverlap);
 		SetSwardSlot(this->OnUseSwardSlot);
 		SetShieldSlot(this->OnUseShieldSlot);
@@ -73,6 +122,14 @@ void UTalesInventoryComponent::BeginPlay()
 	if(ensureAlways(InventoryWidgetClass) && GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		 InventoryWidget = CreateWidget<UTalesInventoryUserWidget>(UGameplayStatics::GetPlayerController(GetWorld(), 0), InventoryWidgetClass);
+	}
+	
+	if(UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner()))
+	{
+		ASC->GenericGameplayEventCallbacks.FindOrAdd(UTalesInventoryComponent::PickItemActorTag).AddUObject(this, &ThisClass::GameplayEventCallback);
+		ASC->GenericGameplayEventCallbacks.FindOrAdd(UTalesInventoryComponent::DropItemTag).AddUObject(this, &ThisClass::GameplayEventCallback);
+		ASC->GenericGameplayEventCallbacks.FindOrAdd(UTalesInventoryComponent::EquipTag).AddUObject(this, &ThisClass::GameplayEventCallback);
+		ASC->GenericGameplayEventCallbacks.FindOrAdd(UTalesInventoryComponent::UnEquipTag).AddUObject(this, &ThisClass::GameplayEventCallback);
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -90,6 +147,8 @@ void UTalesInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// @TODO 后续添加到Actor中
 	PrimaryInteractTraceByFoot();
 
 	// Debug Cheat
@@ -102,7 +161,7 @@ void UTalesInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 			const UItemStaticData* ItemStaticData = ItemInstance->GetItemStaticData();
 			if(IsValid(ItemInstance) && IsValid(ItemStaticData))
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Blue, FString::Printf(TEXT("Item: %s"), *ItemStaticData->Name.ToString()));
+				GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Blue, FString::Printf(TEXT("Item: %s"), *ItemStaticData->ItemRowHandle.RowName.ToString()));
 			}
 		}
 	}
@@ -112,6 +171,11 @@ void UTalesInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UTalesInventoryComponent, InventoryList);
+	DOREPLIFETIME(UTalesInventoryComponent, SwardList);
+	DOREPLIFETIME(UTalesInventoryComponent, ShieldList);
+	DOREPLIFETIME(UTalesInventoryComponent, EatableList);
+	DOREPLIFETIME(UTalesInventoryComponent, CurrentShieldItem);
+	DOREPLIFETIME(UTalesInventoryComponent, CurrentSwardItem);
 }
 
 void UTalesInventoryComponent::SetSwardSlot(FTalesInventoryItemSlot NewSwardSlot)
@@ -240,6 +304,274 @@ void UTalesInventoryComponent::PackageDataChange_Eatable(const FTalesInventoryIt
 		}
 }
 
+void UTalesInventoryComponent::AddItem(TSubclassOf<UItemStaticData> InItemStaticDataClass)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
+		{
+		case SwardItem:
+			SwardList.AddItem(InItemStaticDataClass);
+			break;
+		case ShieldItem:
+			ShieldList.AddItem(InItemStaticDataClass);
+			break;
+		case EatableItem:
+			EatableList.AddItem(InItemStaticDataClass);
+			break;
+		default:
+			break;
+		}
+		InventoryList.AddItem(InItemStaticDataClass);
+	}
+}
+
+void UTalesInventoryComponent::AddItemInstance(UInventoryItemInstance* InItemInstance)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		switch (InItemInstance->GetItemStaticData()->ItemType)
+		{
+		case SwardItem:
+			SwardList.AddItem(InItemInstance);
+			break;
+		case ShieldItem:
+			ShieldList.AddItem(InItemInstance);
+			break;
+		case EatableItem:
+			EatableList.AddItem(InItemInstance);
+			break;
+		default:
+			break;
+		}
+		InventoryList.AddItem(InItemInstance);
+	}
+}
+
+void UTalesInventoryComponent::RemoveItem(TSubclassOf<UItemStaticData> InItemStaticDataClass)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
+		{
+		case SwardItem:
+			SwardList.AddItem(InItemStaticDataClass);
+			break;
+		case ShieldItem:
+			ShieldList.AddItem(InItemStaticDataClass);
+			break;
+		case EatableItem:
+			EatableList.AddItem(InItemStaticDataClass);
+			break;
+		default:
+			break;
+		}
+		InventoryList.RemoveItem(InItemStaticDataClass);
+	}
+}
+
+void UTalesInventoryComponent::EquipItem(TSubclassOf<UItemStaticData> InItemStaticDataClass)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		for(auto Item : InventoryList.GetItemsRef())
+		{
+			if(Item.ItemInstance->ItemStaticDataClass == InItemStaticDataClass)
+			{
+				Item.ItemInstance->OnEquipped(GetOwner());
+				CurrentItem = Item.ItemInstance;
+				break;
+			}
+		}
+		
+		FInventoryList* List = nullptr;
+		switch (InItemStaticDataClass.GetDefaultObject()->ItemType)
+		{
+		case SwardList:
+			List = &SwardList;
+			break;
+		case ShieldList:
+			List = &ShieldList;
+			break;
+		default:
+			break;
+		}
+		if(List != nullptr)
+		{
+			for(auto Item : List->GetItemsRef())
+			{
+				if(Item.ItemInstance->ItemStaticDataClass == InItemStaticDataClass)
+				{
+					Item.ItemInstance->OnEquipped(GetOwner());
+					CurrentItem = Item.ItemInstance;
+					break;
+				}
+			}
+		}
+	}
+}
+
+void UTalesInventoryComponent::EquipItemInstance(UInventoryItemInstance* InItemInstance)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		for(auto Item : InventoryList.GetItemsRef())
+		{
+			if(Item.ItemInstance == InItemInstance)
+			{
+				Item.ItemInstance->OnEquipped(GetOwner());
+				CurrentItem = Item.ItemInstance;
+				break;
+			}
+		}
+		
+		FInventoryList* List = nullptr;
+		switch (InItemInstance->GetItemStaticData()->ItemType)
+		{
+		case SwardList:
+			List = &SwardList;
+			break;
+		case ShieldList:
+			List = &ShieldList;
+			break;
+		default:
+			break;
+		}
+		if(List != nullptr)
+		{
+			for(auto Item : List->GetItemsRef())
+			{
+				if(Item.ItemInstance == InItemInstance)
+				{
+					Item.ItemInstance->OnEquipped(GetOwner());
+					CurrentItem = Item.ItemInstance;
+					break;
+				}
+			}
+		}
+	}
+}
+
+void UTalesInventoryComponent::UnEquipItem()
+{
+	if(GetOwner()->HasAuthority())
+	{
+		if(IsValid(CurrentItem))
+		{
+			CurrentItem->OnUnEquipped(GetOwner());
+			CurrentItem = nullptr;
+		}
+	}
+}
+
+void UTalesInventoryComponent::DropItem()
+{
+	if(GetOwner()->HasAuthority())
+	{
+		if(IsValid(CurrentItem))
+		{
+			CurrentItem->OnDropped(GetOwner());
+			RemoveItem(CurrentItem->ItemStaticDataClass);
+			CurrentItem = nullptr;
+		}
+	}
+}
+
+void UTalesInventoryComponent::EquipItemNext()
+{
+	TArray<FInventoryListItem>& Items = InventoryList.GetItemsRef();
+	const bool bNoItems = Items.Num() == 0;
+	const bool bOneAndEquipped = Items.Num() == 1 && CurrentItem;
+
+	if(bNoItems || bOneAndEquipped) return;
+
+	UInventoryItemInstance* TargetItem = CurrentItem;
+	for(auto Item : Items)
+	{
+		if(Item.ItemInstance->GetItemStaticData()->CanEquipped())
+		{
+			if(Item.ItemInstance != CurrentItem)
+			{
+				TargetItem = Item.ItemInstance;
+				break;
+			}
+		}
+	}
+
+	if(CurrentItem)
+	{
+		if(TargetItem == CurrentItem)
+		{
+			return;
+		}
+		UnEquipItem();
+	}
+	EquipItemInstance(TargetItem);
+}
+
+void UTalesInventoryComponent::GameplayEventCallback(const FGameplayEventData* PayLoad)
+{
+	ENetRole NetRole = GetOwnerRole();
+	if(NetRole == ROLE_Authority)
+	{
+		HandleGameplayEventInternal(*PayLoad);
+	}
+	else if(NetRole == ROLE_AutonomousProxy)
+	{
+		ServerHandleGameplayEvent(*PayLoad);
+	}
+}
+
+void UTalesInventoryComponent::AddInventoryTags()
+{
+	UGameplayTagsManager& TagsManager = UGameplayTagsManager::Get();
+
+	UTalesInventoryComponent::PickItemActorTag = TagsManager.AddNativeGameplayTag(TEXT("Event.Inventory.PickItemActor"), TEXT("Pick Item from item actor event"));
+	UTalesInventoryComponent::DropItemTag = TagsManager.AddNativeGameplayTag(TEXT("Event.Inventory.DropItem"), TEXT("Drop equipped item"));
+	UTalesInventoryComponent::EquipTag = TagsManager.AddNativeGameplayTag(TEXT("Event.Inventory.EquipItem"), TEXT("Try equip item"));
+	UTalesInventoryComponent::UnEquipTag = TagsManager.AddNativeGameplayTag(TEXT("Event.Inventory.UnEquip"), TEXT("Try unequip item"));
+	TagsManager.OnLastChanceToAddNativeTags().RemoveAll(this);
+}
+
+void UTalesInventoryComponent::HandleGameplayEventInternal(FGameplayEventData Payload)
+{
+	ENetRole NetRole = GetOwnerRole();
+	if(NetRole == ROLE_Authority)
+	{
+		FGameplayTag EventTag = Payload.EventTag;
+
+		if(EventTag == UTalesInventoryComponent::PickItemActorTag)
+		{
+			if(const UInventoryItemInstance* ItemInstance = Cast<UInventoryItemInstance>(Payload.OptionalObject))
+			{
+				AddItemInstance(const_cast<UInventoryItemInstance*>(ItemInstance));
+
+				if(Payload.Instigator)
+				{
+					const_cast<AActor*>(Payload.Instigator.Get())->Destroy();
+				}
+			}
+		}
+		else if(EventTag == UTalesInventoryComponent::EquipTag)
+		{
+			EquipItemNext();
+		}
+		else if(EventTag == UTalesInventoryComponent::DropItemTag)
+		{
+			DropItem();
+		}
+		else if(EventTag == UTalesInventoryComponent::UnEquipTag)
+		{
+			UnEquipItem();
+		}
+	}
+}
+
+void UTalesInventoryComponent::ServerHandleGameplayEvent_Implementation(FGameplayEventData Payload)
+{
+	HandleGameplayEventInternal(Payload);
+}
+
 void UTalesInventoryComponent::PickKeyPressed()
 {
 	// @TODO Delete, 做两遍检测
@@ -317,9 +649,11 @@ void UTalesInventoryComponent::PrimaryInteractTraceByFoot()
 void UTalesInventoryComponent::OnCharacterOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	auto Money = Cast<ATalesMoney>(OtherActor);
-	InventoryMoneyAmount += Money->MoneyData.Amount;
-	// MoneyAmountChangeDelegate.Broadcast(Cast<AActor>(Money), this, InventoryMoneyAmount, Money->MoneyData.Amount);
-	Money->Destroy();
-	GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Blue, FString::FromInt(InventoryMoneyAmount));	
+	if(Money)
+	{
+		// MoneyAmountChangeDelegate.Broadcast(Cast<AActor>(Money), this, InventoryMoneyAmount, Money->MoneyData.Amount);
+		Money->Destroy();
+		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Blue, FString::FromInt(InventoryMoneyAmount));
+	}
 }
 

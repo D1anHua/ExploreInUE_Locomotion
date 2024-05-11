@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 
 // Inventory Data
+#include "SEditorViewportToolBarMenu.h"
 #include "TalesInventoroyItem.h"
 #include "Inventory/Data/InventoryList.h"
 
@@ -39,6 +40,7 @@ public:
 	// FMoneyAmountChangeDelegate MoneyAmountChangeDelegate;
 	
 	virtual void InitializeComponent() override;
+	virtual void PostLoad() override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 protected:
@@ -131,8 +133,63 @@ protected:
 	UPROPERTY(Replicated)
 	FInventoryList InventoryList;
 
+	UPROPERTY(Replicated)
+	FInventoryList		SwardList;
+	UPROPERTY(Replicated)
+	FInventoryList		ShieldList;
+	UPROPERTY(Replicated)
+	FInventoryList		EatableList;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditDefaultsOnly, Category = "EditOnly")
 	TArray<TSubclassOf<UItemStaticData>> DefaultItems;
 #endif
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void AddItem(TSubclassOf<UItemStaticData> InItemStaticDataClass);
+
+	UFUNCTION(BlueprintCallable)
+	void AddItemInstance(UInventoryItemInstance* InItemInstance);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveItem(TSubclassOf<UItemStaticData> InItemStaticDataClass);
+
+	UFUNCTION(BlueprintCallable)
+	void EquipItem(TSubclassOf<UItemStaticData> InItemStaticDataClass);
+
+	UFUNCTION(BlueprintCallable)
+	void EquipItemInstance(UInventoryItemInstance* InItemInstance);
+	
+	UFUNCTION(BlueprintCallable)
+	void UnEquipItem();
+	
+	UFUNCTION(BlueprintCallable)
+	void DropItem();
+	
+	UFUNCTION(BlueprintCallable)
+	void EquipItemNext();
+
+	virtual void GameplayEventCallback(const FGameplayEventData* PayLoad);
+
+	static FGameplayTag PickItemActorTag;
+	static FGameplayTag DropItemTag;
+	static FGameplayTag EquipTag;
+	static FGameplayTag UnEquipTag;
+
+protected:
+	UFUNCTION()
+	void AddInventoryTags();
+
+	UPROPERTY(Replicated)
+	UInventoryItemInstance* CurrentSwardItem = nullptr;
+	UPROPERTY(Replicated)
+	UInventoryItemInstance* CurrentShieldItem = nullptr;
+
+	FDelegateHandle TagDelegateHandle;
+
+	void HandleGameplayEventInternal(FGameplayEventData Payload);
+
+	UFUNCTION(Server, Reliable)
+	void ServerHandleGameplayEvent(FGameplayEventData Payload);
 };

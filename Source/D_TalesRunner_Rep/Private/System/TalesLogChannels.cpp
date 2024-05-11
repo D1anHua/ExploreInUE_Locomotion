@@ -3,6 +3,7 @@
 
 DEFINE_LOG_CATEGORY(LogTales);
 DEFINE_LOG_CATEGORY(LogTalesAbilitySystem);
+DEFINE_LOG_CATEGORY(LogInventory);
 
 FString GetClientServerContextString(UObject* ContextObject)
 {

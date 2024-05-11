@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "InventoryItemInstance.generated.h"
 
 /**
@@ -27,12 +26,20 @@ public:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Equipped)
 	bool bEquipped = false;
+	UPROPERTY(ReplicatedUsing = OnRep_Quantity)
+	int Quantity = 0;
 
 	UFUNCTION()
 	void OnRep_Equipped();
+	UFUNCTION()
+	void OnRep_Quantity();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void OnEquipped(AActor* InOwner = nullptr);
 	virtual void OnUnEquipped(AActor* InOwner = nullptr);
 	virtual void OnDropped(AActor* InOwner = nullptr);
+
+protected:
+	UPROPERTY(Replicated)
+	class AInventoryItemActorBase* ItemActor = nullptr;
 };

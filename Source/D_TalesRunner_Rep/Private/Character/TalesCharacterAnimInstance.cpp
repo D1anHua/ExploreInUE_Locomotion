@@ -85,12 +85,8 @@ void UTalesCharacterAnimInstance::UpdateVelocityData()
 	LocalVelocity2D = UKismetMathLibrary::Quat_UnrotateVector(WorldRotation.Quaternion(), WorldVelocity2D);
 	LocalVelocityDirectionAngle = UKismetAnimationLibrary::CalculateDirection(WorldVelocity2D, WorldRotation);
 	LocalVelocityDirectionAngleWithOffset = LocalVelocityDirectionAngle - RootYawOffset;
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::FromInt(FMath::CeilToInt(LocalVelocityDirectionAngle)));
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::FromInt(FMath::CeilToInt(LocalVelocityDirectionAngleWithOffset)));
 	LocalVelocityDirection = SelectCardinalDirectionfromAngle(LocalVelocityDirectionAngleWithOffset, CardinalDirectionDeadZone, LocalVelocityDirection, bIsMovingLastUpdate);
 	LocalVelocityDirectionNoOffset = SelectCardinalDirectionfromAngle(LocalVelocityDirectionAngle, CardinalDirectionDeadZone, LocalVelocityDirectionNoOffset, bIsMovingLastUpdate);
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::FromInt(LocalVelocityDirection));
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::FromInt(LocalVelocityDirectionNoOffset));
 }
 
 void UTalesCharacterAnimInstance::UpdateAccelerationData()
