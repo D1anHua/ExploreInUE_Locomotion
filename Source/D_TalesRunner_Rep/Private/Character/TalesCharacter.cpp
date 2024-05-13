@@ -269,6 +269,8 @@ void ATalesCharacter::SprintStop(const FInputActionInstance& Instance)
 void ATalesCharacter::LookMouse(const FInputActionInstance& Instance)
 {
 	const FVector2D Value = Instance.GetValue().Get<FVector2D>();
+	// @todo 换个位置实现?
+	CameraTurnRate = FMath::Clamp(Value.X, -1.f, 1.f);
 	AddControllerYawInput(Value.X);
 	AddControllerPitchInput(Value.Y);
 }
@@ -349,6 +351,20 @@ void ATalesCharacter::Jump()
 void ATalesCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
+	if(TalesCharacterMovementComponent)
+	{
+		auto VelocityZ = GetVelocity().Z;
+		if(VelocityZ >= 300.0 && VelocityZ < 900.0)
+		{
+			LandState = Normal;
+		}else if(VelocityZ >= 900.0)
+		{
+			LandState = Soft;
+		}else
+		{
+			LandState = Heavy;
+		}
+	}	
 	if(AbilitySystemCompBase)
 	{
 		AbilitySystemCompBase->RemoveActiveEffectsWithTags(InAirTags);

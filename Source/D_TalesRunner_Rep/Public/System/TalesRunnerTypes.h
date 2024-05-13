@@ -5,6 +5,8 @@
 #include "Engine/DataTable.h"
 #include "TalesRunnerTypes.generated.h"
 
+// ---------------------------------------------------------------------------------
+// -------------------------------- Character Type ---------------------------------
 USTRUCT(BlueprintType)
 struct FCharacterData
 {
@@ -20,6 +22,13 @@ struct FCharacterData
 	// class UCharacterAnimDataAsset* CharacterAnimDataAsset;
 };
 
+UENUM(BlueprintType)
+enum EAnimEnumLandState
+{
+	Normal   UMETA(DisplayName = "NormalLandState"),
+	Soft     UMETA(DisplayName = "SoftLandState"),
+	Heavy    UMETA(DisplayName = "HeavyLandState"),
+};
 
 // ---------------------------------------------------------------------------------
 // -------------------------------- Inventory Type ---------------------------------

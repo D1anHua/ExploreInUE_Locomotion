@@ -131,15 +131,15 @@ private:
 	ATalesCharacter* TalesCharacterOwner;
 	
 	//! Sprint begin Logical ---- network safely
-	bool Safe_bWantToSprint;
-	bool Safe_bWantsToProne;
-	bool Safe_bWantsToDash;
-	bool Safe_bWantsToClimb;
-	bool Safe_bPrevWantsToCrouch;
-	bool Safe_bHadAnimRootMotion;
-	bool Safe_bTransitionFinished;
-	bool Safe_bClimbTransitionFinished;
-	
+	UPROPERTY(ReplicatedUsing = OnRep_Sprint)
+	uint8 Safe_WantToSprint  : 1;
+	uint8 Safe_WantsToProne  : 1;
+	uint8 Safe_WantsToDash   : 1;
+	uint8 Safe_WantsToClimb  : 1;
+	uint8 Safe_PrevWantsToCrouch : 1;
+	uint8 Safe_HadAnimRootMotion : 1;
+	uint8 Safe_TransitionFinished : 1;
+	uint8 Safe_ClimbTransitionFinished : 1;
 
 	float DashStartTime;
 	FTimerHandle TimerHandle_EnterProne;
@@ -173,6 +173,7 @@ private:
 	UFUNCTION() void OnRep_ShortMantle();
 	UFUNCTION() void OnRep_TallMantle();
 	UFUNCTION() void OnRep_ClimbStart();
+	UFUNCTION() void OnRep_Sprint();
 	
 
 public:
@@ -188,7 +189,8 @@ public:
 	UFUNCTION(BlueprintPure) bool IsClimbing() const { return IsCustomMovementMode(CMOVE_Climb); }
 	UFUNCTION(BlueprintPure) bool IsSlide() const { return IsCustomMovementMode(CMOVE_Slide); }
 	UFUNCTION(BlueprintPure) bool IsProne() const { return IsCustomMovementMode(CMOVE_Prone); }
-	
+	UFUNCTION(BlueprintPure) bool IsSprint() const { return  IsMovementMode(MOVE_Walking) && Safe_WantToSprint && !IsCrouching(); }
+
 	UFUNCTION(BlueprintPure)
 	bool IsCustomMovementMode(ECustomMovementMode InCustomMocementMode) const;
 	UFUNCTION(BlueprintPure)
@@ -223,7 +225,7 @@ private:
 
 	// --------------------------------------- Prone Mode -------------------------------------------------
 	//! Prone Helper Function
-	void OnTryEnterProne(){Safe_bWantsToProne = true;};
+	void OnTryEnterProne(){Safe_WantsToProne = true;};
 	UFUNCTION(Server, Reliable) void Server_EnterProne();
 	
 	void EnterProne(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode);

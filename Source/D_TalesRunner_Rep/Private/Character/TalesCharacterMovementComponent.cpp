@@ -86,15 +86,15 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::SetMoveFor(ACharacter* 
 {
 	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 	UTalesCharacterMovementComponent* CharacterMovement = Cast<UTalesCharacterMovementComponent>(C->GetCharacterMovement());
-	Saved_bWantsToSprint	  = CharacterMovement->Safe_bWantToSprint;
-	Saved_bWantsToDash		  = CharacterMovement->Safe_bWantsToDash;
-	Saved_bWantsToClimb       = CharacterMovement->Safe_bWantsToClimb;
-	Saved_bPrevWantsToCrouch  = CharacterMovement->Safe_bPrevWantsToCrouch;
-	Saved_bWantsToProne       = CharacterMovement->Safe_bWantsToProne;
+	Saved_bWantsToSprint	  = CharacterMovement->Safe_WantToSprint;
+	Saved_bWantsToDash		  = CharacterMovement->Safe_WantsToDash;
+	Saved_bWantsToClimb       = CharacterMovement->Safe_WantsToClimb;
+	Saved_bPrevWantsToCrouch  = CharacterMovement->Safe_PrevWantsToCrouch;
+	Saved_bWantsToProne       = CharacterMovement->Safe_WantsToProne;
 	Saved_bPressedZippyJump	  = CharacterMovement->TalesCharacterOwner->bPressedTalesJump;
-	Saved_bHadAnimRootMotion  = CharacterMovement->Safe_bHadAnimRootMotion;
-	Saved_bTransitionFinished = CharacterMovement->Safe_bTransitionFinished;
-	Saved_bClimbTransitionFinished = CharacterMovement->Safe_bClimbTransitionFinished;
+	Saved_bHadAnimRootMotion  = CharacterMovement->Safe_HadAnimRootMotion;
+	Saved_bTransitionFinished = CharacterMovement->Safe_TransitionFinished;
+	Saved_bClimbTransitionFinished = CharacterMovement->Safe_ClimbTransitionFinished;
 }
 
 void UTalesCharacterMovementComponent::FSavedmove_Tales::PrepMoveFor(ACharacter* C)
@@ -102,16 +102,16 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::PrepMoveFor(ACharacter*
 	FSavedMove_Character::PrepMoveFor(C);
 
 	UTalesCharacterMovementComponent* CharacterMovement = Cast<UTalesCharacterMovementComponent>(C->GetCharacterMovement());
-	CharacterMovement->Safe_bWantToSprint      = Saved_bWantsToSprint;
-	CharacterMovement->Safe_bWantsToDash	   = Saved_bWantsToDash;
-	CharacterMovement->Safe_bWantsToClimb      = Saved_bWantsToClimb;
-	CharacterMovement->Safe_bPrevWantsToCrouch = Saved_bPrevWantsToCrouch;
-	CharacterMovement->Safe_bWantsToProne      = Saved_bWantsToProne;
+	CharacterMovement->Safe_WantToSprint      = Saved_bWantsToSprint;
+	CharacterMovement->Safe_WantsToDash	   = Saved_bWantsToDash;
+	CharacterMovement->Safe_WantsToClimb      = Saved_bWantsToClimb;
+	CharacterMovement->Safe_PrevWantsToCrouch = Saved_bPrevWantsToCrouch;
+	CharacterMovement->Safe_WantsToProne      = Saved_bWantsToProne;
 	CharacterMovement->TalesCharacterOwner->bPressedTalesJump = Saved_bPressedZippyJump;
 
-	CharacterMovement->Safe_bTransitionFinished = Saved_bTransitionFinished;
-	CharacterMovement->Safe_bHadAnimRootMotion  = Saved_bHadAnimRootMotion;
-	CharacterMovement->Safe_bClimbTransitionFinished = Saved_bClimbTransitionFinished;
+	CharacterMovement->Safe_TransitionFinished = Saved_bTransitionFinished;
+	CharacterMovement->Safe_HadAnimRootMotion  = Saved_bHadAnimRootMotion;
+	CharacterMovement->Safe_ClimbTransitionFinished = Saved_bClimbTransitionFinished;
 }
 
 #pragma endregion
@@ -177,7 +177,7 @@ FVector UTalesCharacterMovementComponent::GetUnRotatedClimbVelocity() const
 float UTalesCharacterMovementComponent::GetMaxSpeed() const
 {
 	// Set Sprint Max Speed
-	if(IsMovementMode(MOVE_Walking) && Safe_bWantToSprint && !IsCrouching()) return MaxSprintSpeed * VelocityZoom;
+	if(IsMovementMode(MOVE_Walking) && Safe_WantToSprint && !IsCrouching()) return MaxSprintSpeed * VelocityZoom;
 
 	// Set Other Movement mode's Max Speed
 	if(MovementMode != MOVE_Custom) return Super::GetMaxSpeed() * VelocityZoom;
@@ -241,9 +241,9 @@ void UTalesCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
-	Safe_bWantToSprint = (Flags & FSavedmove_Tales::FLAG_Sprint) != 0;
-	Safe_bWantsToDash  = (Flags & FSavedmove_Tales::FLAG_Dash) != 0;
-	Safe_bWantsToClimb = ((Flags & FSavedmove_Tales::FLAG_Climb) != 0);
+	Safe_WantToSprint = (Flags & FSavedmove_Tales::FLAG_Sprint) != 0;
+	Safe_WantsToDash  = (Flags & FSavedmove_Tales::FLAG_Dash) != 0;
+	Safe_WantsToClimb = ((Flags & FSavedmove_Tales::FLAG_Climb) != 0);
 }
 
 void UTalesCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -251,7 +251,7 @@ void UTalesCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, con
 {
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 
-	Safe_bPrevWantsToCrouch = bWantsToCrouch;
+	Safe_PrevWantsToCrouch = bWantsToCrouch;
 }
 
 void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
@@ -260,30 +260,30 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 	// 但是: 为了避免if 后面的语句重复执行, 有关bWantsToCrouch的语句全部写在一个If-Else里面
 	if(CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		if(Safe_bWantsToClimb && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
+		if(Safe_WantsToClimb && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
 		{
-			if(!Safe_bClimbTransitionFinished && (CanClimbUP() || CanClimbDown()))
+			if(!Safe_ClimbTransitionFinished && (CanClimbUP() || CanClimbDown()))
 			{
-				Safe_bWantsToClimb = false;
+				Safe_WantsToClimb = false;
 			}
-			else if(Safe_bClimbTransitionFinished)
+			else if(Safe_ClimbTransitionFinished)
 			{
 				SetMovementMode(MOVE_Custom, CMOVE_Climb);
 			}
 			else
 			{
 				// 用来解决CanClimb()失败的情况
-				Safe_bWantsToClimb = false;
+				Safe_WantsToClimb = false;
 			}
 		}
-		else if(IsCustomMovementMode(CMOVE_Climb) && !Safe_bWantsToClimb)
+		else if(IsCustomMovementMode(CMOVE_Climb) && !Safe_WantsToClimb)
 		{
 			SetMovementMode(MOVE_Falling);
 		}
 	}
 
 	// Slide
-	if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_bPrevWantsToCrouch)
+	if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_PrevWantsToCrouch)
 	{
 		if(CanSlide())
 		{
@@ -297,14 +297,14 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 
 
 	// Prone
-	if(Safe_bWantsToProne)
+	if(Safe_WantsToProne)
 	{
 		if(CanProne())
 		{
 			SetMovementMode(MOVE_Custom, CMOVE_Prone);
 			if(!CharacterOwner->HasAuthority()) Server_EnterProne();
 		}
-		Safe_bWantsToProne = false;
+		Safe_WantsToProne = false;
 	}
 	if(IsCustomMovementMode(CMOVE_Prone) && !bWantsToCrouch)
 	{
@@ -313,13 +313,13 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 
 	// Dash
 	bool bAuthProxy = CharacterOwner->HasAuthority() && !CharacterOwner->IsLocallyControlled();
-	if(Safe_bWantsToDash && CanDash())
+	if(Safe_WantsToDash && CanDash())
 	{
 		if(!bAuthProxy || GetWorld()->GetTimeSeconds() - DashStartTime > AuthDashCooldownDuration)
 		{
 			// AntiCheat
 			DoDash();
-			Safe_bWantsToDash = false;
+			Safe_WantsToDash = false;
 			Proxy_bDashStart = !Proxy_bDashStart;
 		}
 		else
@@ -345,7 +345,7 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 	}
 
 	// Transition Mantle
-	if(Safe_bTransitionFinished)
+	if(Safe_TransitionFinished)
 	{
 		SLOG("Transition Finished")
 		UE_LOG(LogTemp, Warning, TEXT("FINISHED RM"))
@@ -362,7 +362,7 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 			SetMovementMode(MOVE_Walking);
 		}
 
-		Safe_bTransitionFinished = false;
+		Safe_TransitionFinished = false;
 	}
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -372,9 +372,9 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateAfterMovement(float D
 {
 	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
 
-	if(!HasAnimRootMotion() && Safe_bHadAnimRootMotion && IsMovementMode(MOVE_Flying))
+	if(!HasAnimRootMotion() && Safe_HadAnimRootMotion && IsMovementMode(MOVE_Flying))
 	{
-		if(Safe_bHadAnimRootMotion)
+		if(Safe_HadAnimRootMotion)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Ending Anim Root Motion"))
 			SetMovementMode(MOVE_Walking);
@@ -389,9 +389,9 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateAfterMovement(float D
 	if(GetRootMotionSourceByID(TransitionRMS_ID) && GetRootMotionSourceByID(TransitionRMS_ID)->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
 	{
 		RemoveRootMotionSourceByID(TransitionRMS_ID);
-		Safe_bTransitionFinished = true;
+		Safe_TransitionFinished = true;
 	}
-	Safe_bHadAnimRootMotion = HasAnimRootMotion();
+	Safe_HadAnimRootMotion = HasAnimRootMotion();
 }
 
 void UTalesCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
@@ -441,6 +441,7 @@ void UTalesCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bShortMantle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bTallMantle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bClimbStart, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Safe_WantToSprint, COND_SimulatedOnly);
 }
 
 void UTalesCharacterMovementComponent::OnRep_DashStart()
@@ -462,6 +463,10 @@ void UTalesCharacterMovementComponent::OnRep_TallMantle()
 void UTalesCharacterMovementComponent::OnRep_ClimbStart()
 {
 	CharacterOwner->PlayAnimMontage(ProxyClimbStartMontage);
+}
+
+void UTalesCharacterMovementComponent::OnRep_Sprint()
+{
 }
 #pragma endregion
 
@@ -720,7 +725,7 @@ void UTalesCharacterMovementComponent::PhysSlide(float deltaTime, int32 Iteratio
 #pragma region Prone
 void UTalesCharacterMovementComponent::Server_EnterProne_Implementation()
 {
-	Safe_bWantsToProne = true;
+	Safe_WantsToProne = true;
 }
 
 void UTalesCharacterMovementComponent::EnterProne(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode)
@@ -948,7 +953,7 @@ void UTalesCharacterMovementComponent::PhysProne(float deltaTime, int32 Iteratio
 #pragma region Dash
 void UTalesCharacterMovementComponent::OnDashCooldownFinished()
 {
-	Safe_bWantsToDash = true;	
+	Safe_WantsToDash = true;	
 }
 
 bool UTalesCharacterMovementComponent::CanDash() const
@@ -1183,8 +1188,8 @@ void UTalesCharacterMovementComponent::EnterClimb(EMovementMode PrevMode, ECusto
 
 void UTalesCharacterMovementComponent::ExitClimb()
 {
-	Safe_bClimbTransitionFinished = false;
-	Safe_bWantsToClimb = false;	
+	Safe_ClimbTransitionFinished = false;
+	Safe_WantsToClimb = false;	
 	bOrientRotationToMovement = true;
 	OnExitClimbStateDelegate.ExecuteIfBound();
 
@@ -1407,8 +1412,8 @@ void UTalesCharacterMovementComponent::OnClimbMontageEnded(UAnimMontage* Montage
 	if((Montage == TransitionClimbUpMontage || Montage == TransitionClimbDownMontage) && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		SLOG("Climb Montage ended");
-		Safe_bWantsToClimb = true;
-		Safe_bClimbTransitionFinished = true;
+		Safe_WantsToClimb = true;
+		Safe_ClimbTransitionFinished = true;
 	}
 }
 
@@ -1477,12 +1482,12 @@ void UTalesCharacterMovementComponent::RequestHopping()
 #pragma region trigger
 void UTalesCharacterMovementComponent::SprintPressed()
 {
-	Safe_bWantToSprint = true;
+	Safe_WantToSprint = true;
 }
 
 void UTalesCharacterMovementComponent::SprintReleased()
 {
-	Safe_bWantToSprint = false;
+	Safe_WantToSprint = false;
 }
 
 void UTalesCharacterMovementComponent::CrouchPressed()
@@ -1501,7 +1506,7 @@ void UTalesCharacterMovementComponent::DashPressed()
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	if(CurrentTime - DashStartTime >= DashCooldownDuration)
 	{
-		Safe_bWantsToDash = true;
+		Safe_WantsToDash = true;
 	}
 	else
 	{
@@ -1512,16 +1517,16 @@ void UTalesCharacterMovementComponent::DashPressed()
 void UTalesCharacterMovementComponent::DashReleased()
 {
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_DashCooldown);
-	Safe_bWantsToDash = false;
+	Safe_WantsToDash = false;
 }
 
 void UTalesCharacterMovementComponent::ClimbPressed()
 {
-	Safe_bWantsToClimb = true;
+	Safe_WantsToClimb = true;
 }
 
 void UTalesCharacterMovementComponent::ClimbReleased()
 {
-	Safe_bWantsToClimb = false;
+	Safe_WantsToClimb = false;
 }
 #pragma endregion

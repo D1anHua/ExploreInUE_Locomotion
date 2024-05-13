@@ -171,6 +171,9 @@ protected:
 public:
 	virtual void Jump() override;
 	virtual void Landed(const FHitResult& Hit) override;
+	//! @todo 之后记得更改为private
+	TEnumAsByte<EAnimEnumLandState> LandState;
+	float CameraTurnRate = 0.f;
 	virtual void StopJumping() override;
 
 	virtual void BeginPlay() override;

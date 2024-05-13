@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "System/TalesRunnerTypes.h"
 #include "TalesCharacterAnimInstance.generated.h"
+
+// @todo 此宏定义是用来区分Lyra Locomotion 以及 普通 Locomotion的变量更新
+#define TALES_LOCOMOTION_USE_LYRA 1
+
 
 UENUM(BlueprintType)
 enum EAnimEnumCardinalDirection
@@ -35,7 +40,7 @@ private:
 	UPROPERTY()  ATalesCharacter* TalesCharacter;
 	UPROPERTY()  UTalesCharacterMovementComponent* TalesCharacterMovementComponent;
 
-	// Distance Matching
+	// ----------------------------------     Distance Matching      -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Location, meta = (AllowPrivateAccess = "true"))
 	float DisplacementSinceLastUpdate;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Location, meta = (AllowPrivateAccess = "true"))
@@ -45,11 +50,13 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsFirstUpdate = true;
 	
-	// Velocity
+	// ----------------------------------        Velocity       -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
 	FVector Velocity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
 	FVector LocalVelocity2D;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
+	bool bHasVelocity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
 	float GroundSpeed;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
@@ -69,17 +76,21 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VelocityData, meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<EAnimEnumCardinalDirection> LocalVelocityDirectionNoOffset;
 
-	// Acceleration
+	// ----------------------------------      Acceleration       -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
 	FVector LocalAcceleration2D;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
+	FVector WorldAcceleration2D;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
 	FVector PivotDirection2D;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
 	bool bHasAcceleration;
 	
-	// CharacterStateData
+	// --------------------------------    CharacterStateData    -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsFalling;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
+	bool bIsSprint;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsSliding;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
@@ -95,15 +106,19 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsFallingJump;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<EAnimEnumLandState> LandState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	float TimeJumpToApex;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	float GroundDistance;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsIntoWall;
 
-	// Rotation Data
+	// --------------------------------       Rotation Data    -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	FRotator WorldRotation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
+	FRotator LastWorldRotation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	float YawDeltaSinceLastUpdate;
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
@@ -111,9 +126,11 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	float YawDeltaSpeed;
 
-	// Acceleration
+	// ------------------------------      Locomotion SM Data    ---------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
-	TEnumAsByte<EAnimEnumCardinalDirection> StartDirection;
+	float MovementDirection;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<EAnimEnumCardinalDirection> MovementDirectionEnum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<EAnimEnumCardinalDirection> PivotInitialDirection;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
@@ -122,12 +139,27 @@ private:
 	float LastPivotTime;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
 	bool bIsMovingPerpendicularToInitialPivot;
+
+	// ------------------------------       Orientation    ---------------------------------
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Orientation, meta = (AllowPrivateAccess = "true"))
+	float FOrientationAngle;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Orientation, meta = (AllowPrivateAccess = "true"))
+	float ROrientationAngle;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Orientation, meta = (AllowPrivateAccess = "true"))
+	float BOrientationAngle;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Orientation, meta = (AllowPrivateAccess = "true"))
+	float LOrientationAngle;
 	
-	// Turn In Place
+	// ------------------------------      Turn In Place    ---------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
 	float RootYawOffset;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	float RootPitch;
+	//! 此角度是用来平滑角色转身的
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	float RotationAngle;
 	
-	// Settings
+	// ------------------------------       Settings       ---------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Setting, meta = (AllowPrivateAccess = "true"))
 	float CardinalDirectionDeadZone = 10.f;
 	
@@ -143,5 +175,7 @@ private:
 	void GetVelocityComponent();
 	void UpdateLocationData(float DeltaSeconds);
 	void UpdateWallDetection();
+	void UpdateMovementDirection();
+	void UpdateOrientationAngle();
 	EAnimEnumCardinalDirection SelectCardinalDirectionfromAngle(float angle, float DeadZone, EAnimEnumCardinalDirection CurrentDirection, bool bUseCurrentDirection);
 };

@@ -4,7 +4,6 @@
 #include "Character/TalesCharacterAnimInstance.h"
 
 #include "KismetAnimationLibrary.h"
-#include "VectorTypes.h"
 #include "Character/TalesCharacter.h"
 #include "Character/TalesCharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -24,6 +23,11 @@ void UTalesCharacterAnimInstance::NativeInitializeAnimation()
 void UTalesCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
+}
+
+void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 	if(!TalesCharacter || !TalesCharacterMovementComponent) return;
 	UpdateLocationData(DeltaSeconds);
 	UpdateRotationData();
@@ -36,11 +40,6 @@ void UTalesCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	UpdateWallDetection();
 
 	bIsFirstUpdate = false;
-}
-
-void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
-{
-	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 }
 
 void UTalesCharacterAnimInstance::UpdateLocationData(float DeltaSeconds)
@@ -59,6 +58,9 @@ void UTalesCharacterAnimInstance::UpdateLocationData(float DeltaSeconds)
 		DisplacementSpeed = DisplacementSinceLastUpdate / DeltaSeconds;	
 	}
 	WorldLocation = NowLocation;
+
+	RootPitch = (TalesCharacter->GetBaseAimRotation() - TalesCharacter->GetActorRotation()).Pitch;
+	RotationAngle = FMath::FInterpTo(RotationAngle, TalesCharacter->CameraTurnRate, DeltaSeconds,10.f);
 }
 
 void UTalesCharacterAnimInstance::UpdateRotationData()
@@ -69,6 +71,7 @@ void UTalesCharacterAnimInstance::UpdateRotationData()
 		// AdditiveLeanAngle = 0.f;
 	}
 	const auto OldRotation = WorldRotation;
+	LastWorldRotation = WorldRotation;
 	WorldRotation  = TalesCharacter->GetActorRotation();
 	YawDeltaSinceLastUpdate =  OldRotation.Yaw - WorldRotation.Yaw;
 	YawDeltaSpeed = YawDeltaSinceLastUpdate / GetDeltaSeconds();
@@ -83,6 +86,7 @@ void UTalesCharacterAnimInstance::UpdateVelocityData()
 	GetShouldMove();
 	const FVector WorldVelocity2D(Velocity.X, Velocity.Y, 0);
 	LocalVelocity2D = UKismetMathLibrary::Quat_UnrotateVector(WorldRotation.Quaternion(), WorldVelocity2D);
+	bHasVelocity = LocalVelocity2D.IsNearlyZero();
 	LocalVelocityDirectionAngle = UKismetAnimationLibrary::CalculateDirection(WorldVelocity2D, WorldRotation);
 	LocalVelocityDirectionAngleWithOffset = LocalVelocityDirectionAngle - RootYawOffset;
 	LocalVelocityDirection = SelectCardinalDirectionfromAngle(LocalVelocityDirectionAngleWithOffset, CardinalDirectionDeadZone, LocalVelocityDirection, bIsMovingLastUpdate);
@@ -91,11 +95,12 @@ void UTalesCharacterAnimInstance::UpdateVelocityData()
 
 void UTalesCharacterAnimInstance::UpdateAccelerationData()
 {
-	auto WorldAcceleration2D = TalesCharacterMovementComponent->GetCurrentAcceleration();
+	WorldAcceleration2D = TalesCharacterMovementComponent->GetCurrentAcceleration();
 	WorldAcceleration2D.Z = 0;
 	LocalAcceleration2D = UKismetMathLibrary::Quat_UnrotateVector(WorldRotation.Quaternion(), WorldAcceleration2D);
 	bHasAcceleration = LocalAcceleration2D.IsNearlyZero();
 
+	UpdateMovementDirection();
 	// Calculate a cardinal direction to be used for pivots.
 	PivotDirection2D = FMath::Lerp(PivotDirection2D, WorldAcceleration2D.GetSafeNormal(), 0.5f).GetSafeNormal();
 	float angle = UKismetAnimationLibrary::CalculateDirection(PivotDirection2D, WorldRotation);
@@ -169,6 +174,7 @@ void UTalesCharacterAnimInstance::GetJumpParams()
 			GroundDistance = HitResult.Distance;	
 		}
 	}
+	LandState	 = TalesCharacter->LandState;
 }
 
 void UTalesCharacterAnimInstance::GetCustomMode()
@@ -176,7 +182,8 @@ void UTalesCharacterAnimInstance::GetCustomMode()
 	bIsSliding   = TalesCharacterMovementComponent->IsSlide();
 	bIsCrouching = TalesCharacterMovementComponent->IsCrouching();	
 	bIsProning   = TalesCharacterMovementComponent->IsProne();	
-	bIsClimbing  = TalesCharacterMovementComponent->IsClimbing();	
+	bIsClimbing  = TalesCharacterMovementComponent->IsClimbing();
+	bIsSprint    = TalesCharacterMovementComponent->IsSprint();
 }
 
 void UTalesCharacterAnimInstance::UpdateWallDetection()
@@ -188,8 +195,39 @@ void UTalesCharacterAnimInstance::UpdateWallDetection()
 	bIsIntoWall = Acceleration2D.Length() > 0.2 && Velocity2D.Length() > 200.f && (Angle > -0.6 && Angle < 0.6);
 }
 
+void UTalesCharacterAnimInstance::UpdateMovementDirection()
+{
+	MovementDirection = UKismetAnimationLibrary::CalculateDirection(Velocity, WorldRotation);
+	MovementDirection = UKismetMathLibrary::NormalizeAxis(MovementDirection);
+	if(MovementDirection >= -70.f && MovementDirection <= 70.f)
+	{
+		MovementDirectionEnum = ForwardDirection;
+	}
+	else if(MovementDirection >= 70.f && MovementDirection <= 110.f)
+	{
+		MovementDirectionEnum = RightDirection;
+	}
+	else if(MovementDirection >= -110.f && MovementDirection <= -70.f)
+	{
+		MovementDirectionEnum = LeftDirection;
+	}
+	else
+	{
+		MovementDirectionEnum = BackwardDirection;
+	}
+	UpdateOrientationAngle();
+}
+
+void UTalesCharacterAnimInstance::UpdateOrientationAngle()
+{
+	FOrientationAngle = MovementDirection - 0.f;
+	ROrientationAngle = MovementDirection - 90.f;
+	BOrientationAngle = MovementDirection - 180.f;
+	LOrientationAngle = MovementDirection + 90.f;
+}
+
 EAnimEnumCardinalDirection UTalesCharacterAnimInstance::SelectCardinalDirectionfromAngle(float angle, float DeadZone,
-	EAnimEnumCardinalDirection CurrentDirection, bool bUseCurrentDirection)
+                                                                                         EAnimEnumCardinalDirection CurrentDirection, bool bUseCurrentDirection)
 {
 	float AbsAngle = FMath::Abs(angle);
 	float FwdDeadZone = DeadZone;
