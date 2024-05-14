@@ -59,15 +59,6 @@ ATalesCharacter::ATalesCharacter(const FObjectInitializer& ObjectInitializer)
 	SprintLineNiagaraComp->SetRelativeRotation(FRotator(270.f, 0.f, 0.f));
 	SprintLineNiagaraComp->SetRelativeScale3D(FVector(3.f, 3.f, 3.f));
 
-	// // JetPack Setting
-	// JetPackComp = CreateDefaultSubobject<USkeletalMeshComponent>("JetPackComp");
-	// JetPackComp->SetupAttachment(GetMesh(), TEXT("BackpackSocket"));
-	//
-	// JetPackThrusterComp = CreateDefaultSubobject<UNiagaraComponent>("JetPackThrusterComp");
-	// JetPackThrusterComp->SetupAttachment(JetPackComp);
-	//
-	// JetPackThrusterAudioComp = CreateDefaultSubobject<UAudioComponent>("JetPackSFX");
-
 	// MeshComponent
 	SwardMesh = CreateDefaultSubobject<UStaticMeshComponent>("SwardMesh");
 	SwardMesh->SetupAttachment(GetMesh(), TEXT("SwardSocket"));
@@ -84,6 +75,23 @@ void ATalesCharacter::PawnClientRestart()
 	Super::PawnClientRestart();
 	
 	AddInputMappingContext(PCInputMapping, 0);
+}
+
+void ATalesCharacter::OnRep_ReplicatedAcceleration()
+{
+	if(TalesCharacterMovementComponent)
+	{
+		// Decompress Acceleration
+		const double MaxAccel		   = TalesCharacterMovementComponent->MaxAcceleration;
+		const double AcceleXYMagnitude = double(ReplicatedAcceleration.AccelXYMagnitude) * MaxAccel / 255.0;
+		const double AcceleXYRadians   = double(ReplicatedAcceleration.AccelXYRadians) * TWO_PI / 255.0;
+		
+		FVector UnpackedAcceleration(FVector::ZeroVector);
+		FMath::PolarToCartesian(AcceleXYMagnitude, AcceleXYRadians, UnpackedAcceleration.X, UnpackedAcceleration.Y);
+		UnpackedAcceleration.Z = double(ReplicatedAcceleration.AccelZ) * MaxAccel / 127.0;
+
+		TalesCharacterMovementComponent->SetReplicatedAcceleration(UnpackedAcceleration);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -132,6 +140,25 @@ void ATalesCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATalesCharacter, CharacterData);
 	DOREPLIFETIME(ATalesCharacter, InventoryComponent);
+	DOREPLIFETIME_CONDITION(ATalesCharacter, ReplicatedAcceleration, COND_SimulatedOnly);
+}
+
+void ATalesCharacter::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+	if(TalesCharacterMovementComponent)
+	{
+		// Compress Acceleration:  XY components as direction + magnitude, Z component as direct value
+		const double MaxAccel = TalesCharacterMovementComponent->MaxAcceleration;
+		const FVector CurrentAccell = TalesCharacterMovementComponent->GetCurrentAcceleration();
+		double AccelXYRadians, AccelXYMagnitude;
+		// 正交坐标 -> 笛卡尔坐标 换成方向和大小
+		FMath::CartesianToPolar(CurrentAccell.X, CurrentAccell.Y, AccelXYMagnitude, AccelXYRadians);
+
+		ReplicatedAcceleration.AccelXYRadians   = FMath::FloorToInt((AccelXYRadians / TWO_PI) * 255.0);
+		ReplicatedAcceleration.AccelXYMagnitude = FMath::FloorToInt((AccelXYMagnitude / MaxAccel) * 255.0);
+		ReplicatedAcceleration.AccelZ			= FMath::FloorToInt((CurrentAccell.Z / MaxAccel) * 127.0);
+	}
 }
 
 void ATalesCharacter::AddInputMappingContext(UInputMappingContext* ContextToAdd, int32 InPriority)

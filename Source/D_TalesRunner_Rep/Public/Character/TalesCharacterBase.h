@@ -7,28 +7,11 @@
 #include "GameplayCueInterface.h"
 #include "GameplayTagAssetInterface.h"
 #include "GameFramework/Character.h"
+#include "System/TalesRunnerTypes.h"
 #include "TalesCharacterBase.generated.h"
 
 class UTalesPawnExtensionComponent;
 class UTalesAbilitySystemCompBase;
-
-/*!
- * FLyraReplicatedAcceleration: Compressed representation of acceleration
- */
-USTRUCT()
-struct FTalesReplicatedAcceleration
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	uint8 AccelXYRadians = 0;	// Direction of XY accel component, quantized to represent [0, 2*pi]
-
-	UPROPERTY()
-	uint8 AccelXYMagnitude = 0;	//Accel rate of XY component, quantized to represent [0, MaxAcceleration]
-
-	UPROPERTY()
-	int8 AccelZ = 0;	// Raw Z accel rate component, quantized to represent [-MaxAcceleration, MaxAcceleration]
-};
 
 /** The type we use to send FastShared movement updates. */
 USTRUCT()

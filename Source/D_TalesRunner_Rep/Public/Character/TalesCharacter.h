@@ -92,7 +92,8 @@ protected:
 
 	virtual void InitFromCharacterData(const FCharacterData& InCharacterData, bool bFromReplication = false);
 #pragma endregion
-	
+
+#pragma region EnhancedInput
 protected:
 	/* Enhanced Input, PCInputMapping using for PC Game */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -167,8 +168,11 @@ protected:
 	void OnSprintActionEnd(const FInputActionInstance& Instance);
 	void OnDropItemTriggered(const FInputActionInstance& Instance);
 	void OnEquipItemTriggered(const FInputActionInstance& Instance);
+
+#pragma endregion
 	
 public:
+	// Locomotion
 	virtual void Jump() override;
 	virtual void Landed(const FHitResult& Hit) override;
 	//! @todo 之后记得更改为private
@@ -176,9 +180,16 @@ public:
 	float CameraTurnRate = 0.f;
 	virtual void StopJumping() override;
 
+	//! Replicated Acceleration
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_ReplicatedAcceleration)
+	FTalesReplicatedAcceleration ReplicatedAcceleration;
+	UFUNCTION()
+	void OnRep_ReplicatedAcceleration();
+
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -187,15 +198,13 @@ public:
 	
 // TODO: should be private
 protected:
+
+	//! @TODO Delete need
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Params")
 	float DefaultFov				= 40.f;
 	// Sprint Setting
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Params")
 	bool  bIsSprint				= false;;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Params")
-	float SprintSpeed				= 600.f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Params")
-	float SprintAcceleration		= 1200.f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Params")
 	float SprintFov				= 45.f;
 
@@ -207,12 +216,13 @@ public:
 	bool bPressedTalesJump;
 	
 protected:
-	// Track used for Sprint Fov Change
+	// @TODO: Delete // Track used for Sprint Fov Change
 	FOnTimelineFloat UpdateSprintFOVTrack;
 	UFUNCTION()
 	void UpdateSprintFov(float TimelineOutput);
 	
 private:
+	// @TODO: Will Delete
 	UPROPERTY()
 	UCameraShakeBase* CurrentSprintShake;
 
@@ -227,7 +237,8 @@ public:
 	// Interact Begin
 	void ActivateInteractUI();
 	void UnActivateInteractUI();
-	
+
+	//! Crouch Move used by GAS
 	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 

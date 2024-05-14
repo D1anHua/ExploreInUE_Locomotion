@@ -235,6 +235,21 @@ FNetworkPredictionData_Client* UTalesCharacterMovementComponent::GetPredictionDa
 	}	
 	return ClientPredictionData;
 }
+
+void UTalesCharacterMovementComponent::SimulateMovement(float DeltaTime)
+{
+	if(bHasReplicatedAcceleration)
+	{
+		const FVector OriginalAcceleration = Acceleration;
+		Super::SimulateMovement(DeltaTime);
+		Acceleration = OriginalAcceleration;
+	}
+	else
+	{
+		Super::SimulateMovement(DeltaTime);
+	}
+}
+
 // ----------------------------   Extended Character Movement Component   ------------------------------------
 #pragma region ExtendedComp
 void UTalesCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
@@ -964,14 +979,6 @@ bool UTalesCharacterMovementComponent::CanDash() const
 void UTalesCharacterMovementComponent::DoDash()
 {
 	DashStartTime = GetWorld()->GetTimeSeconds();
-	// FVector DashDirection = (Acceleration.IsNearlyZero() ? UpdatedComponent->GetForwardVector() : Acceleration).GetSafeNormal2D();
-	// DashDirection += FVector::UpVector * .1f;
-	// Velocity = DashImpulse * DashDirection;
-
-	// FQuat NewRotation = FRotationMatrix::MakeFromXZ(DashDirection, FVector::UpVector).ToQuat();
-	// FHitResult Hit;
-	// SafeMoveUpdatedComponent(FVector::ZeroVector, NewRotation, false, Hit);
-
 	SetMovementMode(MOVE_Falling);
 
 	CharacterOwner->PlayAnimMontage(DashMontage);

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "System/TalesRunnerTypes.h"
 #include "TalesCharacterAnimInstance.generated.h"
 
@@ -18,6 +19,14 @@ enum EAnimEnumCardinalDirection
 	BackwardDirection,
 	LeftDirection,
 	RightDirection,
+};
+
+UENUM(BlueprintType)
+enum ERootYawOffsetMode
+{
+	BlendOut		UMETA(DisplayName =  "BlendOut"),
+	Hold			UMETA(DisplayName =  "Hold"),
+	Accumulate      UMETA(DisplayName =  "Accumulate")
 };
 
 class UTalesCharacterMovementComponent;
@@ -82,7 +91,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
 	FVector WorldAcceleration2D;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
-	FVector PivotDirection2D;
+	FVector PivotDirection2D = {0.f, 0.f, 0.f};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AccelerationData, meta = (AllowPrivateAccess = "true"))
 	bool bHasAcceleration;
 	
@@ -95,6 +104,8 @@ private:
 	bool bIsSliding;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsCrouching;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
+	bool bCrouchStateChange;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
 	bool bIsProning;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterStateData, meta = (AllowPrivateAccess = "true"))
@@ -117,20 +128,28 @@ private:
 	// --------------------------------       Rotation Data    -----------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	FRotator WorldRotation;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	FRotator LastWorldRotation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	float YawDeltaSinceLastUpdate;
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
-	// float AdditiveLeanAngle;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
+	float AdditiveLeanAngle;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
 	float YawDeltaSpeed;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
+	float Pitch;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rotation, meta = (AllowPrivateAccess = "true"))
+	FRotator PitchRotator;
 
 	// ------------------------------      Locomotion SM Data    ---------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
 	float MovementDirection;
+	// Not Use In Lyra
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<EAnimEnumCardinalDirection> MovementDirectionEnum;
+	// Pivot In Lyra
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<EAnimEnumCardinalDirection> StartDirectionEnum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<EAnimEnumCardinalDirection> PivotInitialDirection;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LocomotionSMData, meta = (AllowPrivateAccess = "true"))
@@ -151,13 +170,25 @@ private:
 	float LOrientationAngle;
 	
 	// ------------------------------      Turn In Place    ---------------------------------
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	float RootYawOffset = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
-	float RootYawOffset;
+	FFloatSpringState RootYawOffsetSpringState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<ERootYawOffsetMode> RootYawOffsetMode;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	FVector2D RootYawOffsetAngleClamp = {-120.f, 100.f};
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
+	FVector2D RootYawOffsetAngleClampCrouched = {-90.f, 80.f};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
 	float RootPitch;
 	//! 此角度是用来平滑角色转身的
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = TurnInPlace, meta = (AllowPrivateAccess = "true"))
 	float RotationAngle;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AimingData, meta = (AllowPrivateAccess = "true"))
+	float AimPitch;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AimingData, meta = (AllowPrivateAccess = "true"))
+	float AimYaw;
 	
 	// ------------------------------       Settings       ---------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Setting, meta = (AllowPrivateAccess = "true"))
@@ -166,6 +197,7 @@ private:
 	void UpdateRotationData();
 	void UpdateVelocityData();
 	void UpdateAccelerationData();
+	void UpdateRootYawOffset();
 	
 	void GetGroundSpeed();
 	void GetAirSpeed();
@@ -178,4 +210,8 @@ private:
 	void UpdateMovementDirection();
 	void UpdateOrientationAngle();
 	EAnimEnumCardinalDirection SelectCardinalDirectionfromAngle(float angle, float DeadZone, EAnimEnumCardinalDirection CurrentDirection, bool bUseCurrentDirection);
+	
+protected:
+	UFUNCTION(BlueprintCallable, Category = "TurnInPlace")
+	void SetRootYawOffset(float InRootYawOffset);
 };

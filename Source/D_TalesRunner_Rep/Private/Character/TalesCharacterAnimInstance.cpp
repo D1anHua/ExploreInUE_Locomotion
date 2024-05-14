@@ -23,11 +23,6 @@ void UTalesCharacterAnimInstance::NativeInitializeAnimation()
 void UTalesCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-}
-
-void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
-{
-	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 	if(!TalesCharacter || !TalesCharacterMovementComponent) return;
 	UpdateLocationData(DeltaSeconds);
 	UpdateRotationData();
@@ -38,8 +33,14 @@ void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSec
 	GetJumpParams();
 	GetCustomMode();
 	UpdateWallDetection();
+	UpdateRootYawOffset();
 
 	bIsFirstUpdate = false;
+}
+
+void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 }
 
 void UTalesCharacterAnimInstance::UpdateLocationData(float DeltaSeconds)
@@ -68,25 +69,30 @@ void UTalesCharacterAnimInstance::UpdateRotationData()
 	if(bIsFirstUpdate)
 	{
 		YawDeltaSinceLastUpdate = 0.f;
-		// AdditiveLeanAngle = 0.f;
+		AdditiveLeanAngle = 0.f;
 	}
 	const auto OldRotation = WorldRotation;
 	LastWorldRotation = WorldRotation;
 	WorldRotation  = TalesCharacter->GetActorRotation();
-	YawDeltaSinceLastUpdate =  OldRotation.Yaw - WorldRotation.Yaw;
+	YawDeltaSinceLastUpdate =  WorldRotation.Yaw - OldRotation.Yaw;
 	YawDeltaSpeed = YawDeltaSinceLastUpdate / GetDeltaSeconds();
+	AdditiveLeanAngle = ((bIsCrouching) ?  0.025 : 0.0375) * YawDeltaSpeed;
+	const FRotator ControlRotator = TalesCharacter->GetControlRotation();
+	Pitch = (ControlRotator + FRotator(0.f, 180.f, 0.f)).Pitch;
+	PitchRotator = {Pitch, 0.f, 0.f};
 }
 
 void UTalesCharacterAnimInstance::UpdateVelocityData()
 {
-	bool bIsMovingLastUpdate = !FVector2d(Velocity.X, Velocity.Y).IsNearlyZero();
+	const bool bIsMovingLastUpdate = !LocalVelocity2D.IsNearlyZero();
+	
 	GetGroundSpeed();
 	GetAirSpeed();
 	GetVelocityComponent();
 	GetShouldMove();
 	const FVector WorldVelocity2D(Velocity.X, Velocity.Y, 0);
 	LocalVelocity2D = UKismetMathLibrary::Quat_UnrotateVector(WorldRotation.Quaternion(), WorldVelocity2D);
-	bHasVelocity = LocalVelocity2D.IsNearlyZero();
+	bHasVelocity = !LocalVelocity2D.IsNearlyZero();
 	LocalVelocityDirectionAngle = UKismetAnimationLibrary::CalculateDirection(WorldVelocity2D, WorldRotation);
 	LocalVelocityDirectionAngleWithOffset = LocalVelocityDirectionAngle - RootYawOffset;
 	LocalVelocityDirection = SelectCardinalDirectionfromAngle(LocalVelocityDirectionAngleWithOffset, CardinalDirectionDeadZone, LocalVelocityDirection, bIsMovingLastUpdate);
@@ -98,7 +104,7 @@ void UTalesCharacterAnimInstance::UpdateAccelerationData()
 	WorldAcceleration2D = TalesCharacterMovementComponent->GetCurrentAcceleration();
 	WorldAcceleration2D.Z = 0;
 	LocalAcceleration2D = UKismetMathLibrary::Quat_UnrotateVector(WorldRotation.Quaternion(), WorldAcceleration2D);
-	bHasAcceleration = LocalAcceleration2D.IsNearlyZero();
+	bHasAcceleration = !LocalAcceleration2D.IsNearlyZero();
 
 	UpdateMovementDirection();
 	// Calculate a cardinal direction to be used for pivots.
@@ -115,15 +121,36 @@ void UTalesCharacterAnimInstance::UpdateAccelerationData()
 		break;
 	case LeftDirection:
 		CardinalDirectionFromAcceleration = RightDirection;
+		break;
 	case RightDirection:
 		CardinalDirectionFromAcceleration = LeftDirection;
+		break;
+	default:
+		break;
 	}
 
 	bIsMovingPerpendicularToInitialPivot = (PivotInitialDirection == ForwardDirection || PivotInitialDirection == BackwardDirection) &&
-		                                   (LocalVelocityDirection != ForwardDirection || LocalVelocityDirection != BackwardDirection);
+		                                   (LocalVelocityDirection == LeftDirection || LocalVelocityDirection == RightDirection);
 	bIsMovingPerpendicularToInitialPivot |= (PivotInitialDirection == LeftDirection || PivotInitialDirection == RightDirection) &&
-										    (LocalVelocityDirection != LeftDirection || LocalVelocityDirection != RightDirection);
+										    (LocalVelocityDirection == BackwardDirection || LocalVelocityDirection == ForwardDirection);
 	return;
+}
+
+void UTalesCharacterAnimInstance::UpdateRootYawOffset()
+{
+	//当脚不动时（例如空闲时），将根部偏移到与Pawn Owner旋转方向相反的方向，以防止网格随Pawn旋转。
+	if(RootYawOffsetMode == Accumulate)
+	{
+		SetRootYawOffset(RootYawOffset - YawDeltaSinceLastUpdate);	
+	}
+	if(RootYawOffsetMode == BlendOut)
+	{
+		// 当运动是, 平滑的过度到对应的offset
+		SetRootYawOffset(UKismetMathLibrary::FloatSpringInterp(RootYawOffset, 0.f, RootYawOffsetSpringState, 80.f, 1.0, GetDeltaSeconds(), 1.0, 0.5));
+	}
+	RootYawOffsetMode = BlendOut;
+
+	AimPitch =  UKismetMathLibrary::NormalizeAxis(TalesCharacter->GetBaseAimRotation().Pitch);
 }
 
 void UTalesCharacterAnimInstance::GetGroundSpeed()
@@ -180,10 +207,22 @@ void UTalesCharacterAnimInstance::GetJumpParams()
 void UTalesCharacterAnimInstance::GetCustomMode()
 {
 	bIsSliding   = TalesCharacterMovementComponent->IsSlide();
-	bIsCrouching = TalesCharacterMovementComponent->IsCrouching();	
+	auto OldCrouch = bIsCrouching;
+	bIsCrouching = TalesCharacterMovementComponent->IsCrouching();
+	bCrouchStateChange = bIsCrouching ^ OldCrouch;
 	bIsProning   = TalesCharacterMovementComponent->IsProne();	
 	bIsClimbing  = TalesCharacterMovementComponent->IsClimbing();
 	bIsSprint    = TalesCharacterMovementComponent->IsSprint();
+}
+
+void UTalesCharacterAnimInstance::SetRootYawOffset(float InRootYawOffset)
+{
+	//TurnInPlace #3: 简单来说就是为了避免过快的controller转动, 这里对rootYawOffset进行限制
+	// We clamp the offset because at large offsets the character has to aim too far backwards, which over twists the spine. The turn in place animations will usually keep up with the offset, but this clamp will cause the feet to slide if the user rotates the camera too quickly.
+	// If desired, this clamp could be replaced by having aim animations that can go up to 180 degrees or by triggering turn in place animations more aggressively.
+	const FVector2D Clamp = bIsCrouching ? RootYawOffsetAngleClamp : RootYawOffsetAngleClampCrouched;
+	RootYawOffset = UKismetMathLibrary::ClampAngle(InRootYawOffset, Clamp.X, Clamp.Y);
+	AimYaw = -1 * RootYawOffset;
 }
 
 void UTalesCharacterAnimInstance::UpdateWallDetection()
@@ -192,7 +231,7 @@ void UTalesCharacterAnimInstance::UpdateWallDetection()
 	const FVector2d Acceleration2D(Accelerate.X, Accelerate.Y);
 	const FVector2d Velocity2D(Velocity.X,Velocity.Y);
 	const auto Angle = Acceleration2D.GetSafeNormal().Dot(Velocity2D.GetSafeNormal());
-	bIsIntoWall = Acceleration2D.Length() > 0.2 && Velocity2D.Length() > 200.f && (Angle > -0.6 && Angle < 0.6);
+	bIsIntoWall = Acceleration2D.Length() > 0.2 && Velocity2D.Length() < 200.f && (Angle > -0.6 && Angle < 0.6);
 }
 
 void UTalesCharacterAnimInstance::UpdateMovementDirection()

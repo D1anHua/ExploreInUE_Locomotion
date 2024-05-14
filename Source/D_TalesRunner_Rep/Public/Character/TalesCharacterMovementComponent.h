@@ -37,6 +37,12 @@ class D_TALESRUNNER_REP_API UTalesCharacterMovementComponent : public UCharacter
 public:
 	FORCEINLINE float GetVelocityZoom() const {return VelocityZoom; }
 	FORCEINLINE void SetVelocityZoom(float InVelocityZoom) { VelocityZoom = InVelocityZoom; }
+	//! Only On Simulator
+	FORCEINLINE void SetReplicatedAcceleration(const FVector& InAcceleration)
+	{
+		bHasReplicatedAcceleration = true;
+		Acceleration = InAcceleration;
+	}
 	
 private:
 	//! Sprint_MaxWalkSpeed
@@ -79,7 +85,7 @@ private:
 
 	//! Mantle
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Mantle")
-	float MantleMaxDistance = 200;
+	float MantleMaxDistance = 230;
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Mantle")
 	float MantleReachHeight = 50;
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Mantle")
@@ -140,6 +146,8 @@ private:
 	uint8 Safe_HadAnimRootMotion : 1;
 	uint8 Safe_TransitionFinished : 1;
 	uint8 Safe_ClimbTransitionFinished : 1;
+
+	bool bHasReplicatedAcceleration = false;
 
 	float DashStartTime;
 	FTimerHandle TimerHandle_EnterProne;
@@ -206,6 +214,8 @@ public:
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	// 原本的SimulateMovement会更新Acceleration, 但是这个Acceleration是不对的
+	virtual void SimulateMovement(float DeltaTime) override;
 	
 protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
