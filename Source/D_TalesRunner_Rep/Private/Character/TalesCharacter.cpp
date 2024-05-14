@@ -204,6 +204,7 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if(ensureAlways(Input_LookMouse))InputComp->BindAction(Input_LookMouse, ETriggerEvent::Triggered, this, &ATalesCharacter::LookMouse);
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Started, this, &ATalesCharacter::OnCrouchActionStart);
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Completed, this, &ATalesCharacter::OnCrouchActionEnd);
+	if(ensureAlways(Input_Dash))	 InputComp->BindAction(Input_Dash, ETriggerEvent::Triggered, this, &ATalesCharacter::OnDashActionStart);
 	
 	// Sprint while key is held
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::OnSprintActionStart);
@@ -349,6 +350,14 @@ void ATalesCharacter::OnSprintActionEnd(const FInputActionInstance& Instance)
 	{
 		AbilitySystemCompBase->CancelAbilities(&SprintTags);
 	}
+}
+
+void ATalesCharacter::OnDashActionStart(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->TryActivateAbilitiesByTag(DashTags, true);
+	}	
 }
 
 void ATalesCharacter::OnDropItemTriggered(const FInputActionInstance& Instance)

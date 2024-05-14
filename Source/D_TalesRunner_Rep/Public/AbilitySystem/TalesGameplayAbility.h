@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "System/TalesRunnerTypes.h"
 #include "TalesGameplayAbility.generated.h"
 
 class UTalesAbilitySystemCompBase;
@@ -60,6 +61,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UAnimMontage> FailureMontage = nullptr;
 };
+
 
 
 /**

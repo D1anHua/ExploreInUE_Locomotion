@@ -125,6 +125,8 @@ protected:
 	UInputAction* Input_Equip;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Input_Drop;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Input_Dash;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated)
 	TObjectPtr<UTalesInventoryComponent> InventoryComponent;
@@ -166,6 +168,7 @@ protected:
 	void OnCrouchActionEnd(const FInputActionInstance& Instance);
 	void OnSprintActionStart(const FInputActionInstance& Instance);
 	void OnSprintActionEnd(const FInputActionInstance& Instance);
+	void OnDashActionStart(const FInputActionInstance& Instance);
 	void OnDropItemTriggered(const FInputActionInstance& Instance);
 	void OnEquipItemTriggered(const FInputActionInstance& Instance);
 
@@ -255,6 +258,8 @@ protected:
 	FGameplayTagContainer CrouchTags;
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	FGameplayTagContainer SprintTags;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer DashTags;
 
 protected:
 	// Gameplay Effect

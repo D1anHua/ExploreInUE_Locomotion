@@ -50,6 +50,22 @@ enum EAnimEnumLandState
 };
 
 // ---------------------------------------------------------------------------------
+// -------------------------------- Movement Type ---------------------------------
+USTRUCT(BlueprintType)
+struct FFourDirectionMontageAnim
+{
+	GENERATED_BODY()
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	FDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	DDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	LDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	RDirectionMontage = nullptr;
+};
+
+// ---------------------------------------------------------------------------------
 // -------------------------------- Inventory Type ---------------------------------
 
 //! Struct to show message for Item, Data Table

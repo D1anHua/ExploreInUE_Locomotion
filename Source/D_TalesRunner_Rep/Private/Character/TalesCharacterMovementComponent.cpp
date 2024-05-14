@@ -1462,26 +1462,21 @@ void UTalesCharacterMovementComponent::RequestHopping()
 
 	if(DotResult >= 0.9f)
 	{
-		// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Hop UP"));
 		HandleHop(150.f, 0);
 	}else if(DotResult <= -0.9f)
 	{
-		// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, TEXT("Hop Down"));
 		HandleHop(-150.f, 1);
 	}else if(DotResult >= 0.5 && DotResult <= 0.86)
 	{
 		if(FVector::DotProduct(UnrotatedLastInputVector.GetSafeNormal(), FVector::RightVector) > 0)
 		{
 			HandleHop(150.f, 2);
-			// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, TEXT("Hop UP Right"));
 		}
 		else
 		{
 			HandleHop(150.f, 3);
-			// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Black, TEXT("Hop UP Left"));
 		}
 	}
-	
 	
 }
 #pragma endregion
