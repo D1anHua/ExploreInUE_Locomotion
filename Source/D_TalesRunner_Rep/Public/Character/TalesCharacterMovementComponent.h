@@ -3,9 +3,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TalesCharacterMovementComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDashStartDelegate);
 DECLARE_DELEGATE(FOnEnterClimbState);
 DECLARE_DELEGATE(FOnExitClimbState);
+DECLARE_DELEGATE(FOnArriveTopState);
 
 class ATalesCharacter;
 class UTalesCharacterAnimInstance;
@@ -75,14 +75,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Slide")
 	float BrakingDecelerationProne = 2500.f;
 
-	//! Dash Parameter
-	UPROPERTY(EditDefaultsOnly, Category = "Custom|Dash")
-	float DashCooldownDuration = 1.f;
-	UPROPERTY(EditDefaultsOnly, Category = "Custom|Dash")
-	float AuthDashCooldownDuration = .9f;
-	UPROPERTY(EditDefaultsOnly, Category = "Custom|Montage")
-	UAnimMontage* DashMontage;
-
 	//! Mantle
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Mantle")
 	float MantleMaxDistance = 230;
@@ -123,9 +115,9 @@ private:
 	float ClimbDownWalkableSurfaceTraceOffset = 30.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Climb")
 	float ClimbDownLedgeTraceOffset = 80.f;
-	UPROPERTY(EditDefaultsOnly, Category = "Custom|Climb")
+	UPROPERTY(EditDefaultsOnly, Category = "Custom|Delete")
 	UAnimMontage* TransitionClimbUpMontage;
-	UPROPERTY(EditDefaultsOnly, Category = "Custom|Climb")
+	UPROPERTY(EditDefaultsOnly, Category = "Custom|Delete")
 	UAnimMontage* TransitionClimbDownMontage;
 	UPROPERTY(EditDefaultsOnly, Category = "Custom|Climb")
 	UAnimMontage* OutClimbMontage;
@@ -140,7 +132,6 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Sprint)
 	uint8 Safe_WantToSprint  : 1;
 	uint8 Safe_WantsToProne  : 1;
-	uint8 Safe_WantsToDash   : 1;
 	uint8 Safe_WantsToClimb  : 1;
 	uint8 Safe_PrevWantsToCrouch : 1;
 	uint8 Safe_HadAnimRootMotion : 1;
@@ -149,9 +140,7 @@ private:
 
 	bool bHasReplicatedAcceleration = false;
 
-	float DashStartTime;
 	FTimerHandle TimerHandle_EnterProne;
-	FTimerHandle TimerHandle_DashCooldown;
 	TSharedPtr<FRootMotionSource_MoveToForce> TransitionRMS;
 	UPROPERTY(Transient)
 	UAnimMontage* TransitionQueuedMontage;
@@ -165,19 +154,17 @@ protected:
 	
 public:
 	// Replicated
-	UPROPERTY(ReplicatedUsing = OnRep_DashStart) bool Proxy_bDashStart;
 	UPROPERTY(ReplicatedUsing = OnRep_ShortMantle) bool Proxy_bShortMantle;
 	UPROPERTY(ReplicatedUsing = OnRep_TallMantle) bool Proxy_bTallMantle;
 	UPROPERTY(ReplicatedUsing = OnRep_ClimbStart) bool Proxy_bClimbStart;
 	// Delegates
-	UPROPERTY(BlueprintAssignable) FDashStartDelegate DashStartDelegate;
 	FOnEnterClimbState OnEnterClimbStateDelegate;
 	FOnExitClimbState  OnExitClimbStateDelegate;
+	FOnArriveTopState  OnArriveTopStateDelegate;
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 private:
-	UFUNCTION() void OnRep_DashStart();
 	UFUNCTION() void OnRep_ShortMantle();
 	UFUNCTION() void OnRep_TallMantle();
 	UFUNCTION() void OnRep_ClimbStart();
@@ -242,12 +229,6 @@ private:
 	void ExitProne();
 	bool CanProne() const;
 	void PhysProne(float deltaTime, int32 Iterations);
-
-	// ---------------------------------------    Dash    -------------------------------------------------
-	//! Dash Helper Function
-	void OnDashCooldownFinished();
-	bool CanDash() const;
-	void DoDash();
 	
 	// --------------------------------------    Mantle    ------------------------------------------------
 	bool TryMantle();
@@ -258,9 +239,9 @@ private:
 	FVector CurrentClimbablefaceNormal;
 	void EnterClimb(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode);
 	void ExitClimb();
-	bool CanClimbUP();
-	bool CanClimbDown();
 	void PhysClimb(float deltaTime, int32 Iterations);
+
+	// @TODO: 弃用
 	UFUNCTION()
 	void OnClimbMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
@@ -269,6 +250,8 @@ private:
 	bool CheckCanHopUp(float TraceDistance, float EyeOffset, float HopEndOffset);
 public:
 	void RequestHopping();
+	bool CanClimbUP();
+	bool CanClimbDown();
 
 	
 private:
@@ -293,7 +276,6 @@ public:
 		// :用来说明这个值只占一位
 		//! CompressedFlags
 		uint8 Saved_bWantsToSprint : 1;
-		uint8 Saved_bWantsToDash   : 1;
 		uint8 Saved_bPressedZippyJump : 1;
 		uint8 Saved_bWantsToClimb : 1;
 
@@ -324,6 +306,7 @@ public:
 public:
 	// --------------------------------------- Trigger Data -------------------------------------------------
 	// @TODO This Can Move to GAS
+	// 这两个有用, 作为TalesCharacter的接口了, 命名不好
 	UFUNCTION(BlueprintCallable)
 	void SprintPressed();
 	UFUNCTION(BlueprintCallable)
@@ -332,10 +315,6 @@ public:
 	void CrouchPressed();
 	UFUNCTION(BlueprintCallable)
 	void CrouchReleased();
-	UFUNCTION(BlueprintCallable)
-	void DashPressed();
-	UFUNCTION(BlueprintCallable)
-	void DashReleased();
 	UFUNCTION(BlueprintCallable)
 	void ClimbPressed();
 	UFUNCTION(BlueprintCallable)

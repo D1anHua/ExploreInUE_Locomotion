@@ -132,6 +132,7 @@ void ATalesCharacter::PostInitializeComponents()
 	{
 		TalesCharacterMovementComponent->OnEnterClimbStateDelegate.BindUObject(this, &ThisClass::OnPlayerEnterClimbState);
 		TalesCharacterMovementComponent->OnExitClimbStateDelegate.BindUObject(this, &ThisClass::OnPlayerExitClimbState);
+		TalesCharacterMovementComponent->OnArriveTopStateDelegate.BindUObject(this, &ThisClass::OnReachTopClimbState);
 	}
 }
 
@@ -210,6 +211,8 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::OnSprintActionStart);
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Completed, this, &ATalesCharacter::OnSprintActionEnd);
 	
+	if(ensureAlways(Input_Climb))	 InputComp->BindAction(Input_Climb, ETriggerEvent::Triggered,   this, &ATalesCharacter::OnClimbActionStart);
+	
 	if(ensureAlways(Input_Equip))	 InputComp->BindAction(Input_Equip,  ETriggerEvent::Triggered,   this, &ATalesCharacter::OnEquipItemTriggered);
 	if(ensureAlways(Input_Drop))	 InputComp->BindAction(Input_Drop  , ETriggerEvent::Triggered, this, &ATalesCharacter::OnDropItemTriggered);
 }
@@ -225,6 +228,19 @@ void ATalesCharacter::OnPlayerEnterClimbState()
 void ATalesCharacter::OnPlayerExitClimbState()
 {
 	RemoveInputMappingContext(ClimbInputMapping);
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->CancelAbilities(&ClimbTags);
+	}
+}
+
+void ATalesCharacter::OnReachTopClimbState()
+{
+	// 播放Montage
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->TryActivateAbilitiesByTag(ClimbReachTags, true);
+	}	
 }
 
 void ATalesCharacter::MoveFunc(const FInputActionInstance& Instance)
@@ -358,6 +374,29 @@ void ATalesCharacter::OnDashActionStart(const FInputActionInstance& Instance)
 	{
 		AbilitySystemCompBase->TryActivateAbilitiesByTag(DashTags, true);
 	}	
+}
+
+void ATalesCharacter::OnClimbActionStart(const FInputActionInstance& Instance)
+{
+	if(AbilitySystemCompBase)
+	{
+		if(TalesCharacterMovementComponent->IsFlying() || TalesCharacterMovementComponent->IsClimbing())
+		{
+			AbilitySystemCompBase->CancelAbilities(&ClimbTags);
+		}
+		else
+		{
+			AbilitySystemCompBase->TryActivateAbilitiesByTag(ClimbTags, true);
+		}
+	}
+}
+
+void ATalesCharacter::OnClimbActionEnd(const FInputActionInstance& Instance)
+{
+	// if(AbilitySystemCompBase)
+	// {
+	// 	AbilitySystemCompBase->CancelAbilities(&ClimbTags);
+	// }
 }
 
 void ATalesCharacter::OnDropItemTriggered(const FInputActionInstance& Instance)

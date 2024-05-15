@@ -7,6 +7,7 @@
 #include "Kismet/KismetMathLibrary.h"
 
 // Cheat Debug Config
+// TODO: 可以声明在GameInstance中
 static TAutoConsoleVariable<int32> CVarDebugAbility(
 	TEXT("ShowDebugAbility"),
 	0,

@@ -42,10 +42,6 @@ bool UTalesCharacterMovementComponent::FSavedmove_Tales::CanCombineWith(const FS
 	{
 		return false;
 	}
-	if(Saved_bWantsToDash  != NewTalesMove->Saved_bWantsToDash)
-	{
-		return false;
-	}
 	if(Saved_bWantsToClimb != NewTalesMove->Saved_bWantsToClimb)
 	{
 		return false;
@@ -58,7 +54,6 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::Clear()
 {
 	FSavedMove_Character::Clear();
 	Saved_bWantsToSprint = 0;
-	Saved_bWantsToDash = 0;
 	Saved_bPressedZippyJump = 0;
 	Saved_bWantsToClimb = 0;
 
@@ -74,7 +69,6 @@ uint8 UTalesCharacterMovementComponent::FSavedmove_Tales::GetCompressedFlags() c
 {
 	uint8 Result = Super::GetCompressedFlags();
 	if(Saved_bWantsToSprint) Result |= FLAG_Sprint;
-	if(Saved_bWantsToDash)	 Result |= FLAG_Dash;
 	if(Saved_bPressedZippyJump) Result |= FLAG_JumpPressed;
 	if(Saved_bWantsToClimb)  Result |= FLAG_Climb;
 
@@ -87,7 +81,6 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::SetMoveFor(ACharacter* 
 	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 	UTalesCharacterMovementComponent* CharacterMovement = Cast<UTalesCharacterMovementComponent>(C->GetCharacterMovement());
 	Saved_bWantsToSprint	  = CharacterMovement->Safe_WantToSprint;
-	Saved_bWantsToDash		  = CharacterMovement->Safe_WantsToDash;
 	Saved_bWantsToClimb       = CharacterMovement->Safe_WantsToClimb;
 	Saved_bPrevWantsToCrouch  = CharacterMovement->Safe_PrevWantsToCrouch;
 	Saved_bWantsToProne       = CharacterMovement->Safe_WantsToProne;
@@ -103,7 +96,6 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::PrepMoveFor(ACharacter*
 
 	UTalesCharacterMovementComponent* CharacterMovement = Cast<UTalesCharacterMovementComponent>(C->GetCharacterMovement());
 	CharacterMovement->Safe_WantToSprint      = Saved_bWantsToSprint;
-	CharacterMovement->Safe_WantsToDash	   = Saved_bWantsToDash;
 	CharacterMovement->Safe_WantsToClimb      = Saved_bWantsToClimb;
 	CharacterMovement->Safe_PrevWantsToCrouch = Saved_bPrevWantsToCrouch;
 	CharacterMovement->Safe_WantsToProne      = Saved_bWantsToProne;
@@ -257,7 +249,6 @@ void UTalesCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	Super::UpdateFromCompressedFlags(Flags);
 
 	Safe_WantToSprint = (Flags & FSavedmove_Tales::FLAG_Sprint) != 0;
-	Safe_WantsToDash  = (Flags & FSavedmove_Tales::FLAG_Dash) != 0;
 	Safe_WantsToClimb = ((Flags & FSavedmove_Tales::FLAG_Climb) != 0);
 }
 
@@ -273,29 +264,30 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 {
 	// Climb
 	// 但是: 为了避免if 后面的语句重复执行, 有关bWantsToCrouch的语句全部写在一个If-Else里面
-	if(CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
-	{
-		if(Safe_WantsToClimb && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
-		{
-			if(!Safe_ClimbTransitionFinished && (CanClimbUP() || CanClimbDown()))
-			{
-				Safe_WantsToClimb = false;
-			}
-			else if(Safe_ClimbTransitionFinished)
-			{
-				SetMovementMode(MOVE_Custom, CMOVE_Climb);
-			}
-			else
-			{
-				// 用来解决CanClimb()失败的情况
-				Safe_WantsToClimb = false;
-			}
-		}
-		else if(IsCustomMovementMode(CMOVE_Climb) && !Safe_WantsToClimb)
-		{
-			SetMovementMode(MOVE_Falling);
-		}
-	}
+	// @TODO 弃用
+	// if(CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	// {
+	// 	if(Safe_WantsToClimb && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
+	// 	{
+	// 		if(!Safe_ClimbTransitionFinished && (CanClimbUP() || CanClimbDown()))
+	// 		{
+	// 			Safe_WantsToClimb = false;
+	// 		}
+	// 		else if(Safe_ClimbTransitionFinished)
+	// 		{
+	// 			SetMovementMode(MOVE_Custom, CMOVE_Climb);
+	// 		}
+	// 		else
+	// 		{
+	// 			// 用来解决CanClimb()失败的情况
+	// 			Safe_WantsToClimb = false;
+	// 		}
+	// 	}
+	// 	else if(IsCustomMovementMode(CMOVE_Climb) && !Safe_WantsToClimb)
+	// 	{
+	// 		SetMovementMode(MOVE_Falling);
+	// 	}
+	// }
 
 	// Slide
 	if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_PrevWantsToCrouch)
@@ -324,23 +316,6 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 	if(IsCustomMovementMode(CMOVE_Prone) && !bWantsToCrouch)
 	{
 		SetMovementMode(MOVE_Walking);
-	}
-
-	// Dash
-	bool bAuthProxy = CharacterOwner->HasAuthority() && !CharacterOwner->IsLocallyControlled();
-	if(Safe_WantsToDash && CanDash())
-	{
-		if(!bAuthProxy || GetWorld()->GetTimeSeconds() - DashStartTime > AuthDashCooldownDuration)
-		{
-			// AntiCheat
-			DoDash();
-			Safe_WantsToDash = false;
-			Proxy_bDashStart = !Proxy_bDashStart;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Client Tried to cheat"))
-		}
 	}
 
 	// Mantle
@@ -452,17 +427,10 @@ void UTalesCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bDashStart, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bShortMantle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bTallMantle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Proxy_bClimbStart, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UTalesCharacterMovementComponent, Safe_WantToSprint, COND_SimulatedOnly);
-}
-
-void UTalesCharacterMovementComponent::OnRep_DashStart()
-{
-	CharacterOwner->PlayAnimMontage(DashMontage);
-	DashStartDelegate.Broadcast();
 }
 
 void UTalesCharacterMovementComponent::OnRep_ShortMantle()
@@ -564,9 +532,6 @@ void UTalesCharacterMovementComponent::PhysSlide(float deltaTime, int32 Iteratio
 		SlopeForce.Z = 0.f;
 		Velocity += SlopeForce * SlideGravityForce * deltaTime;
 		float BrakingDeceleration = 0;
-		// GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, Acceleration.ToString());
-		// GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Green, Velocity.ToString());
-		// GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Yellow, *FString(FString::SanitizeFloat(FVector::DotProduct(Acceleration, Velocity))));
 		if(Acceleration.IsNearlyZero() || FVector::DotProduct(Acceleration, Velocity) < 0)
 		{
 			BrakingDeceleration = GetMaxBrakingDeceleration();
@@ -576,10 +541,6 @@ void UTalesCharacterMovementComponent::PhysSlide(float deltaTime, int32 Iteratio
 		{
 			Acceleration = Acceleration.ProjectOnTo(UpdatedComponent->GetRightVector().GetSafeNormal2D());
 		}
-		// UE_LOG(LogBlueprintUserMessages, Error, TEXT("%f, %f"), Acceleration.X, Acceleration.Y);
-		// DrawDebugDirectionalArrow(GetWorld(), UpdatedComponent->GetComponentLocation(), UpdatedComponent->GetComponentLocation() + 20.f * Acceleration, 20.f, FColor::Red, true, 0.1f);
-				
-		// GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Yellow, *FString(FString::SanitizeFloat(BrakingDeceleration)));
 		// Apply acceleration
 		CalcVelocity(timeTick, GroundFriction * SlideFriction, true, BrakingDeceleration);
 
@@ -964,28 +925,6 @@ void UTalesCharacterMovementComponent::PhysProne(float deltaTime, int32 Iteratio
 }
 #pragma endregion
 
-// ---------------------------------------         Dash          -------------------------------------------
-#pragma region Dash
-void UTalesCharacterMovementComponent::OnDashCooldownFinished()
-{
-	Safe_WantsToDash = true;	
-}
-
-bool UTalesCharacterMovementComponent::CanDash() const
-{
-	return IsWalking() && !IsCrouching() || IsFalling();
-}
-
-void UTalesCharacterMovementComponent::DoDash()
-{
-	DashStartTime = GetWorld()->GetTimeSeconds();
-	SetMovementMode(MOVE_Falling);
-
-	CharacterOwner->PlayAnimMontage(DashMontage);
-	DashStartDelegate.Broadcast();
-}
-#pragma endregion
-
 // ---------------------------------------       Mantle        ---------------------------------------------
 #pragma region Mantle
 bool UTalesCharacterMovementComponent::TryMantle()
@@ -1184,20 +1123,23 @@ float UTalesCharacterMovementComponent::CapHH() const
 void UTalesCharacterMovementComponent::EnterClimb(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode)
 {
 	SLOG("Start Climbing");
-	// Rotation Capsule For Climb
-	// FHitResult Hit;
-	// FQuat NewRotation = FRotationMatrix::MakeFromXZ(-FrontHit.Normal, FVector::UpVector).ToQuat();
-	// SafeMoveUpdatedComponent(FVector::ZeroVector, NewRotation, false, Hit);
 	Velocity = FVector::Zero();
+	bUseControllerDesiredRotation =false;
 	bOrientRotationToMovement = false;
+	CharacterOwner->bUseControllerRotationYaw = false;
+
+	// 用来切换Input Mapping
 	OnEnterClimbStateDelegate.ExecuteIfBound();
 }
 
 void UTalesCharacterMovementComponent::ExitClimb()
 {
+	Safe_WantsToClimb = false;
 	Safe_ClimbTransitionFinished = false;
-	Safe_WantsToClimb = false;	
+	bUseControllerDesiredRotation = true;
 	bOrientRotationToMovement = true;
+	CharacterOwner->bUseControllerRotationYaw = true;
+	// 用来切换Input Mapping
 	OnExitClimbStateDelegate.ExecuteIfBound();
 
 	FHitResult Hit;
@@ -1219,7 +1161,6 @@ bool UTalesCharacterMovementComponent::CanClimbUP()
 	{
 CAPSULE(Start, FColor::Red)
 		return false;
-		
 	}
 
 	// UseLineTrace to Search high
@@ -1235,8 +1176,14 @@ LINE(LineStart, LineStart + UpdatedComponent->GetForwardVector() * ClimbReachDis
 	}
 	if(!FrontHit.IsValidBlockingHit()) return false;
 
-	if(ensureAlways(TransitionClimbUpMontage) && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	
+	FHitResult Hit;
+	const FRotator DistanceRotation = UKismetMathLibrary::MakeRotFromX(-FrontHit.Normal);
+	SafeMoveUpdatedComponent(FVector::ZeroVector, DistanceRotation.Quaternion(), false, Hit);
+	// 改用Ability
+	if(TransitionClimbUpMontage && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
+		// @Todo 弃用
 		OwningPlayerAnimInstance->Montage_Play(TransitionClimbUpMontage);
 		if(IsServer())
 		{
@@ -1264,9 +1211,13 @@ bool UTalesCharacterMovementComponent::CanClimbDown()
 	LINE(WalkableSurfaceTraceStart, WalkableSurfaceTraceEnd, FColor::Red);
 	if(WalkableSurfaceHit.bBlockingHit && !LedgeTraceHit.bBlockingHit)
 	{
-		if(ensureAlways(TransitionClimbDownMontage) && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+		if(CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 		{
-			SafeMoveUpdatedComponent(UpdatedComponent->GetForwardVector() * ClimbDownWalkableSurfaceTraceOffset, UpdatedComponent->GetComponentRotation(), false, WalkableSurfaceHit);
+			// SafeMoveUpdatedComponent(UpdatedComponent->GetForwardVector() * ClimbDownWalkableSurfaceTraceOffset, UpdatedComponent->GetComponentRotation(), false, WalkableSurfaceHit);
+		}
+		// @TODO 现在不会调用了
+		if(TransitionClimbDownMontage && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+		{
 			OwningPlayerAnimInstance->Montage_Play(TransitionClimbDownMontage);
 			if(IsServer())
 			{
@@ -1351,7 +1302,7 @@ void UTalesCharacterMovementComponent::PhysClimb(float deltaTime, int32 Iteratio
 
 	// Check Has Reached Ledge
 	FHitResult LedgetHitResult;
-	float TraceStartOffset = 25.f;
+	float TraceStartOffset = 30.f;
 	const FVector ComponentLocation = UpdatedComponent->GetComponentLocation();
 	const FVector EyeHeightOffset = UpdatedComponent->GetUpVector() * (CharacterOwner->BaseEyeHeight + TraceStartOffset);
 	const FVector LineStart = ComponentLocation + EyeHeightOffset;
@@ -1369,9 +1320,14 @@ void UTalesCharacterMovementComponent::PhysClimb(float deltaTime, int32 Iteratio
 		// SLOG(Velocity.ToString());
 		if(WalkableSurfaceHitResult.bBlockingHit && GetUnRotatedClimbVelocity().Z > 15.f)
 		{
-			SetMovementMode(MOVE_Flying);
-			CharacterOwner->PlayAnimMontage(OutClimbMontage);
-			MontageName = "ClimbOut";
+			OnArriveTopStateDelegate.ExecuteIfBound();
+			// @Todo delete
+			if(OutClimbMontage)
+			{
+				SetMovementMode(MOVE_Flying);
+				CharacterOwner->PlayAnimMontage(OutClimbMontage);
+				MontageName = "ClimbOut";
+			}
 			StartNewPhysics(deltaTime, Iterations);
 		}
 	}
@@ -1379,13 +1335,10 @@ void UTalesCharacterMovementComponent::PhysClimb(float deltaTime, int32 Iteratio
 	RestorePreAdditiveRootMotionVelocity();
 
 	// mapping Acceleration
-	// Acceleration.Z = 0.f;
-	// Acceleration = Acceleration.RotateAngleAxis(90.f, -UpdatedComponent->GetRightVector());
 	
 	if(!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
 	{
 		CalcVelocity(deltaTime, 0.f, true, GetMaxBrakingDeceleration());
-		// Velocity = FVector::VectorPlaneProject(Velocity, CurrentClimbablefaceNormal);
 	}
 
 	ApplyRootMotionToVelocity(deltaTime);
@@ -1501,25 +1454,6 @@ void UTalesCharacterMovementComponent::CrouchPressed()
 void UTalesCharacterMovementComponent::CrouchReleased()
 {
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_EnterProne);
-}
-
-void UTalesCharacterMovementComponent::DashPressed()
-{
-	float CurrentTime = GetWorld()->GetTimeSeconds();
-	if(CurrentTime - DashStartTime >= DashCooldownDuration)
-	{
-		Safe_WantsToDash = true;
-	}
-	else
-	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &UTalesCharacterMovementComponent::OnDashCooldownFinished, DashCooldownDuration - (CurrentTime - DashStartTime));
-	}
-}
-
-void UTalesCharacterMovementComponent::DashReleased()
-{
-	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_DashCooldown);
-	Safe_WantsToDash = false;
 }
 
 void UTalesCharacterMovementComponent::ClimbPressed()

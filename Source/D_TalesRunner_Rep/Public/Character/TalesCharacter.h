@@ -104,8 +104,9 @@ protected:
 	void AddInputMappingContext(UInputMappingContext* ContextToAdd, int32 InPriority);
 	void RemoveInputMappingContext(UInputMappingContext* ContextToAdd);
 	// Change InputMapping
-	void OnPlayerEnterClimbState();
-	void OnPlayerExitClimbState();
+	virtual void OnPlayerEnterClimbState();
+	virtual void OnPlayerExitClimbState();
+	virtual void OnReachTopClimbState();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Input_Move;
@@ -127,6 +128,8 @@ protected:
 	UInputAction* Input_Drop;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Input_Dash;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Input_Climb;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated)
 	TObjectPtr<UTalesInventoryComponent> InventoryComponent;
@@ -169,6 +172,9 @@ protected:
 	void OnSprintActionStart(const FInputActionInstance& Instance);
 	void OnSprintActionEnd(const FInputActionInstance& Instance);
 	void OnDashActionStart(const FInputActionInstance& Instance);
+	void OnClimbActionStart(const FInputActionInstance& Instance);
+	void OnClimbActionEnd(const FInputActionInstance& Instance);
+	
 	void OnDropItemTriggered(const FInputActionInstance& Instance);
 	void OnEquipItemTriggered(const FInputActionInstance& Instance);
 
@@ -259,10 +265,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	FGameplayTagContainer SprintTags;
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer ClimbTags;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer ClimbReachTags;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	FGameplayTagContainer DashTags;
 
 protected:
 	// Gameplay Effect
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	TSubclassOf<UGameplayEffect> CrouchStateEffect;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	TSubclassOf<UGameplayEffect> ClimbStateEffect;
 };
