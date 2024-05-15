@@ -174,6 +174,7 @@ protected:
 	void OnDashActionStart(const FInputActionInstance& Instance);
 	void OnClimbActionStart(const FInputActionInstance& Instance);
 	void OnClimbActionEnd(const FInputActionInstance& Instance);
+	void OnClimbHopActionStart(const FInputActionInstance& Instance);
 	
 	void OnDropItemTriggered(const FInputActionInstance& Instance);
 	void OnEquipItemTriggered(const FInputActionInstance& Instance);
@@ -268,6 +269,8 @@ protected:
 	FGameplayTagContainer ClimbTags;
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	FGameplayTagContainer ClimbReachTags;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
+	FGameplayTagContainer ClimbHopTags;
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Event")
 	FGameplayTagContainer DashTags;
 

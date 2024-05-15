@@ -94,10 +94,10 @@ void UTalesGameplayAbility_Dash::EndAbility(const FGameplayAbilitySpecHandle Han
 void UTalesGameplayAbility_Dash::RequestDashDirection()
 {
 	const ATalesCharacter* Character = GetTalesCharacterFromActionInfo();
-	UCharacterMovementComponent* MovementComponent = Character ? Character->GetCharacterMovement() : nullptr;
+	UTalesCharacterMovementComponent* MovementComponent = Character ? Character->GetTalesCharacterMovement() : nullptr;
 	if(MovementComponent)
 	{
-		const FVector UnrotatedLastInputVector = UKismetMathLibrary::Quat_UnrotateVector(Character->GetActorRotation().Quaternion(), MovementComponent->GetLastInputVector());
+		const FVector UnrotatedLastInputVector = UKismetMathLibrary::Quat_UnrotateVector(Character->GetActorRotation().Quaternion(), MovementComponent->GetLastUpdateAcceleration());
 
 		const float DotResult = FVector::DotProduct(UnrotatedLastInputVector.GetSafeNormal(), FVector(1.f, 0.f, 0.f));
 

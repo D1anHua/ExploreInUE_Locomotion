@@ -22,6 +22,10 @@ void ATalesPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float Delt
 	if(ATalesCharacter* TalesCharacter = Cast<ATalesCharacter>(GetOwningPlayerController()->GetPawn()))
 	{
 		UTalesCharacterMovementComponent* TCMC = TalesCharacter->GetTalesCharacterMovement();
+		if(!IsValid(TCMC))
+		{
+			return;	
+		}
 		FVector TargetCrouchOffset = FVector(0, 0, TCMC->GetCrouchedHalfHeight() - TalesCharacter->GetClass()->GetDefaultObject<ACharacter>()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 
 		FVector Offset = FMath::Lerp(FVector::ZeroVector, TargetCrouchOffset, FMath::Clamp(CrouchBlendTime / CrouchBlendDuration, 0.f, 1.f));

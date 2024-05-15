@@ -235,11 +235,18 @@ void UTalesCharacterMovementComponent::SimulateMovement(float DeltaTime)
 		const FVector OriginalAcceleration = Acceleration;
 		Super::SimulateMovement(DeltaTime);
 		Acceleration = OriginalAcceleration;
+		LastUpdateAcceleration = Acceleration;
 	}
 	else
 	{
 		Super::SimulateMovement(DeltaTime);
 	}
+}
+
+void UTalesCharacterMovementComponent::PerformMovement(float DeltaTime)
+{
+	Super::PerformMovement(DeltaTime);
+	LastUpdateAcceleration = Acceleration;
 }
 
 // ----------------------------   Extended Character Movement Component   ------------------------------------

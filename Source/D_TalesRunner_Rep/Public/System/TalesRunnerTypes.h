@@ -65,6 +65,27 @@ struct FFourDirectionMontageAnim
 	UAnimMontage*	RDirectionMontage = nullptr;
 };
 
+USTRUCT(BlueprintType)
+struct FEightDirectionMontageAnim
+{
+	GENERATED_BODY()
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	FDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	BDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	LDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	RDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	FRDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	BRDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	FLDirectionMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+	UAnimMontage*	BLDirectionMontage = nullptr;
+};
 // ---------------------------------------------------------------------------------
 // -------------------------------- Inventory Type ---------------------------------
 

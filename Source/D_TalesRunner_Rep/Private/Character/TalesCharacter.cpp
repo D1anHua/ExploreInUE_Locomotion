@@ -200,8 +200,7 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if(ensureAlways(Input_Move))	 InputComp->BindAction(Input_Move,   ETriggerEvent::Triggered, this, &ATalesCharacter::MoveFunc);
 	if(ensureAlways(Input_ClimbMove)) InputComp->BindAction(Input_ClimbMove, ETriggerEvent::Triggered, this, &ATalesCharacter::ClimbMoveFunc);
 	if(ensureAlways(Input_Jump))	 InputComp->BindAction(Input_Jump,   ETriggerEvent::Triggered, this, &ATalesCharacter::OnJumpActionStart);
-	if(ensureAlways(Input_ClimbHop)) InputComp->BindAction(Input_ClimbHop, ETriggerEvent::Triggered, this, &ATalesCharacter::ClimbHop);
-	// if(ensureAlways(Input_Jump))	 InputComp->BindAction(Input_Jump,   ETriggerEvent::Completed, this, &ATalesCharacter::StopJumping);
+	if(ensureAlways(Input_ClimbHop)) InputComp->BindAction(Input_ClimbHop, ETriggerEvent::Triggered, this, &ATalesCharacter::OnClimbHopActionStart);
 	if(ensureAlways(Input_LookMouse))InputComp->BindAction(Input_LookMouse, ETriggerEvent::Triggered, this, &ATalesCharacter::LookMouse);
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Started, this, &ATalesCharacter::OnCrouchActionStart);
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Completed, this, &ATalesCharacter::OnCrouchActionEnd);
@@ -246,9 +245,6 @@ void ATalesCharacter::OnReachTopClimbState()
 void ATalesCharacter::MoveFunc(const FInputActionInstance& Instance)
 {
 	FRotator ControlRot = GetControlRotation();
-	// ControlRot.Pitch = 0.f;
-	// ControlRot.Roll  = 0.f;
-	// GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, ControlRot.ToString());
 
 	// Get Value from input (Combined value from up down right left keys) and convert to Vector2D
 	const FVector2d AxisValue = Instance.GetValue().Get<FVector2d>();
@@ -391,12 +387,15 @@ void ATalesCharacter::OnClimbActionStart(const FInputActionInstance& Instance)
 	}
 }
 
-void ATalesCharacter::OnClimbActionEnd(const FInputActionInstance& Instance)
+void ATalesCharacter::OnClimbActionEnd(const FInputActionInstance& Instance){
+}
+
+void ATalesCharacter::OnClimbHopActionStart(const FInputActionInstance& Instance)
 {
-	// if(AbilitySystemCompBase)
-	// {
-	// 	AbilitySystemCompBase->CancelAbilities(&ClimbTags);
-	// }
+	if(AbilitySystemCompBase)
+	{
+		AbilitySystemCompBase->TryActivateAbilitiesByTag(ClimbHopTags, true);
+	}	
 }
 
 void ATalesCharacter::OnDropItemTriggered(const FInputActionInstance& Instance)

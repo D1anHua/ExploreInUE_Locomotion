@@ -23,6 +23,11 @@ void UTalesCharacterAnimInstance::NativeInitializeAnimation()
 void UTalesCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
+}
+
+void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 	if(!TalesCharacter || !TalesCharacterMovementComponent) return;
 	UpdateLocationData(DeltaSeconds);
 	UpdateRotationData();
@@ -36,11 +41,6 @@ void UTalesCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	UpdateRootYawOffset();
 
 	bIsFirstUpdate = false;
-}
-
-void UTalesCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
-{
-	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 }
 
 void UTalesCharacterAnimInstance::UpdateLocationData(float DeltaSeconds)

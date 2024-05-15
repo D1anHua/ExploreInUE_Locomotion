@@ -138,6 +138,9 @@ private:
 	uint8 Safe_TransitionFinished : 1;
 	uint8 Safe_ClimbTransitionFinished : 1;
 
+	//! MovementComponent
+	FVector LastUpdateAcceleration = FVector(0.f, 0.f, 0.f);
+
 	bool bHasReplicatedAcceleration = false;
 
 	FTimerHandle TimerHandle_EnterProne;
@@ -161,7 +164,7 @@ public:
 	FOnEnterClimbState OnEnterClimbStateDelegate;
 	FOnExitClimbState  OnExitClimbStateDelegate;
 	FOnArriveTopState  OnArriveTopStateDelegate;
-
+	
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 private:
@@ -185,6 +188,7 @@ public:
 	UFUNCTION(BlueprintPure) bool IsSlide() const { return IsCustomMovementMode(CMOVE_Slide); }
 	UFUNCTION(BlueprintPure) bool IsProne() const { return IsCustomMovementMode(CMOVE_Prone); }
 	UFUNCTION(BlueprintPure) bool IsSprint() const { return  IsMovementMode(MOVE_Walking) && Safe_WantToSprint && !IsCrouching(); }
+	UFUNCTION(BlueprintPure) FVector GetLastUpdateAcceleration() const { return  LastUpdateAcceleration; }
 
 	UFUNCTION(BlueprintPure)
 	bool IsCustomMovementMode(ECustomMovementMode InCustomMocementMode) const;
@@ -203,6 +207,7 @@ public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	// 原本的SimulateMovement会更新Acceleration, 但是这个Acceleration是不对的
 	virtual void SimulateMovement(float DeltaTime) override;
+	virtual void PerformMovement(float DeltaTime) override;
 	
 protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
@@ -246,9 +251,9 @@ private:
 	void OnClimbMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	// -------------------------------------- Climb Hop ------------------------------------------------
+public:
 	void HandleHop(float SafeDistance, int Index);
 	bool CheckCanHopUp(float TraceDistance, float EyeOffset, float HopEndOffset);
-public:
 	void RequestHopping();
 	bool CanClimbUP();
 	bool CanClimbDown();
