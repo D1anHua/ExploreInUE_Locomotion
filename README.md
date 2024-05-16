@@ -10,16 +10,25 @@
 
 本项目的三个主要构成部分如下:
 1. `TalesCharacterMovementComponent.h`: 设计并实现Custom Movement Mode
+   - 前提: 拓展`Saved_Move() Struct`!!!重要!!!
+   - 添加`CMOVE_Slide`运动模式, 实现`Phys_Slide()`函数, 添加`Compressed_Flag: Slide`标志位设置网络同步(参考`Crouch`)
+   - 添加`CMOVE_Prone`运动模式, 实现`Phys_Prone()`函数, 添加`Compressed_Flag: Prone`标志位设置网络同步(参考`Crouch`)
+   - 添加`CMOVE_Climb`运动模式, 实现`Phys_Climb()`函数, 没有提供网络同步方式.(默认提供`Replicate: Move Mode`)
+   - (后续可能会添加到`GAS`中): 翻越的功能(中高墙的翻越), Dash(多方向Dash)
 
 2. `TalesCharacterAnimInstance.h`: 参考`lyra Samples Games`的`Locomotion System`
+   - 采用`MVC`设计模式, 利用`Multi-thread`技术来更新动画蓝图以及解决动画蓝图的解耦问题.(`Character_ABP_Base --- Layer_Interface --- Layer_BaseAnimation`)
+   - 利用`Distance Match, Motion Wraping, Pose Warping`实现**8向动画**, **解决滑步问题**, **实现急停转身**等等;
+   - 利用`Sync Group`技术, 解决`Animation Sequence`之间更为完善的过渡.
+   - `Turn In Place`, `Aim Offset`的实现
 
 3. 其他一些小Tips:
-   1. 简单的利用`GAS`, 实现`Climb`的进入, 离开, 等等;
-   2. `Input Mapping`: 设置不同的运动模式激活不同的`Input Mapping`;
-   2. `Enhanced Input:` 通过`Enhanced Input`的`Custom Trigger`可以实现按键长按短按触发不同的`IA_Action`;
-   3. `ENhanced Input:` 通过设置联合触发方式, 可以实现按下对于反向键来*Dash*到不同的方向;
-   4. 通过`Curve`以及`CameraManager`设定相机移动;
-   5. 添加支持网络同步的`Inventory System`(目前有一个不支持网络同步的, 以及粗糙的支持网络同步的系统).
+   - 简单的利用`GAS`, 实现`Climb`的进入, 离开, 等等;
+   - `Input Mapping`: 设置不同的运动模式激活不同的`Input Mapping`;
+   - `Enhanced Input:` 通过`Enhanced Input`的`Custom Trigger`可以实现按键长按短按触发不同的`IA_Action`;
+   - `ENhanced Input:` 通过设置联合触发方式, 可以实现按下对于反向键来*Dash*到不同的方向;
+   - 通过`Curve`以及`CameraManager`设定相机移动;
+   - 添加支持网络同步的`Inventory System`(目前有一个不支持网络同步的, 以及粗糙的支持网络同步的系统).
 
 **参考资料**:
    1. [《Exploring in UE4》移动组件详解[原理分析]（2019.7.14更新）](https://zhuanlan.zhihu.com/p/34257208)
@@ -29,14 +38,8 @@
    5. [UE5 白话Lyra动画系统](https://zhuanlan.zhihu.com/p/654430436) 
    6. [UE Enhanced Input 如何自定义Trigger](https://zhuanlan.zhihu.com/p/629350225)
 
-# 3 TalesCharacterMovementComponent
-关于本`Component`主要有以下5部分:
-1. 前提: 拓展`Saved_Move() Struct`!!!重要!!!
-2. 添加`CMOVE_Slide`运动模式, 实现`Phys_Slide()`函数, 添加`Compressed_Flag: Slide`标志位设置网络同步(参考`Crouch`)
-3. 添加`CMOVE_Prone`运动模式, 实现`Phys_Prone()`函数, 添加`Compressed_Flag: Prone`标志位设置网络同步(参考`Crouch`)
-4. 添加`CMOVE_Climb`运动模式, 实现`Phys_Climb()`函数, 没有提供网络同步方式.(默认提供`Replicate: Move Mode`)
-5. (后续可能会添加到`GAS`中): 翻越的功能(中高墙的翻越), Dash(多方向Dash)
-
+# 3 CustomMoveMode API
+现提供自定义运动模式的部分API.
 ## 3.1 slide运动模式:
 ```cpp
 //TalesCharacterMovementComponent.h
@@ -105,7 +108,3 @@ void PhysClimb(float deltaTime, int32 Iterations);
 
 # 4 Lyra Locomotion System
 Lyra Locomotion System主要有以下特点:
-1. 采用`MVC`设计模式, 利用`Multi-thread`技术来更新动画蓝图以及解决动画蓝图的解耦问题.(`Character_ABP_Base --- Layer_Interface --- Layer_BaseAnimation`)
-2. 利用`Distance Match, Motion Wraping, Pose Warping`实现**8向动画**, **解决滑步问题**, **实现急停转身**等等;
-3. 利用`Sync Group`技术, 解决`Animation Sequence`之间更为完善的过渡.
-4. `Turn In Place`, `Aim Offset`的实现
