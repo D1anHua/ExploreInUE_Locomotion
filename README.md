@@ -6,6 +6,9 @@
 **项目配置**:
 - UE5.2 (Epic Version)
 
+**项目Bilibili展示:**
+- [Explore In UE Locomotion With Replicate](https://www.bilibili.com/video/BV1Hy411Y7ZE/?spm_id_from=333.999.0.0&vd_source=00aba54fdf4f2f7e11c154b5c6a8bc6c)
+
 # 1 简介
 
 本项目的三个主要构成部分如下:
@@ -105,6 +108,3 @@ void PhysClimb(float deltaTime, int32 Iterations);
 ```
 
 不提供默认同步方式(项目中作为Ability实现同步)
-
-# 4 Lyra Locomotion System
-Lyra Locomotion System主要有以下特点:

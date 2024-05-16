@@ -112,6 +112,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inventory|Data")
 	struct FTalesInventoryItemSlot OnUseShieldSlot;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inventory|Data")
+	TSubclassOf<UAnimInstance> DefaultAnimLayer;
 	// Main Data
 	UPROPERTY()
 	FTalesInventoryPackageDatas PackageDatas;
@@ -162,7 +164,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DropItem();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent)
 	void EquipItemNext();
 
 	virtual void GameplayEventCallback(const FGameplayEventData* PayLoad);
@@ -176,8 +178,11 @@ protected:
 	UFUNCTION()
 	void AddInventoryTags();
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentItem)
 	UInventoryItemInstance* CurrentItem = nullptr;
+
+	UFUNCTION()
+	void OnRep_CurrentItem();
 
 	FDelegateHandle TagDelegateHandle;
 

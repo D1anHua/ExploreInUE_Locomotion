@@ -355,8 +355,7 @@ void UTalesInventoryComponent::DropItem()
 	}
 }
 
-void UTalesInventoryComponent::EquipItemNext()
-{
+void UTalesInventoryComponent::EquipItemNext_Implementation(){
 	TArray<FInventoryListItem>& Items = InventoryList.GetItemsRef();
 	const bool bNoItems = Items.Num() == 0;
 	const bool bOneAndEquipped = Items.Num() == 1 && CurrentItem;
@@ -411,13 +410,28 @@ void UTalesInventoryComponent::AddInventoryTags()
 	TagsManager.OnLastChanceToAddNativeTags().RemoveAll(this);
 }
 
+void UTalesInventoryComponent::OnRep_CurrentItem()
+{
+	if(CurrentItem == nullptr)
+	{
+		TalesCharacterOwner->GetMesh()->GetAnimInstance()->LinkAnimClassLayers(DefaultAnimLayer);
+		return;
+	}
+	if(IsValid(CurrentItem->GetItemStaticData()->StaticDataLayer))
+	{
+		TalesCharacterOwner->GetMesh()->GetAnimInstance()->LinkAnimClassLayers(CurrentItem->GetItemStaticData()->StaticDataLayer);
+		return;
+	}
+	
+	TalesCharacterOwner->GetMesh()->GetAnimInstance()->LinkAnimClassLayers(DefaultAnimLayer);
+}
+
 void UTalesInventoryComponent::HandleGameplayEventInternal(FGameplayEventData Payload)
 {
 	ENetRole NetRole = GetOwnerRole();
+	FGameplayTag EventTag = Payload.EventTag;
 	if(NetRole == ROLE_Authority)
 	{
-		FGameplayTag EventTag = Payload.EventTag;
-
 		if(EventTag == UTalesInventoryComponent::PickItemActorTag)
 		{
 			if(const UInventoryItemInstance* ItemInstance = Cast<UInventoryItemInstance>(Payload.OptionalObject))

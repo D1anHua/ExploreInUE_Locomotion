@@ -10,7 +10,7 @@
 #include "Net/UnrealNetwork.h"
 
 // Helper Macros
-#if 1
+#if 0
 float MacroDuration = 2.f;
 #define SLOG(x) GEngine->AddOnScreenDebugMessage(-1, MacroDuration ? MacroDuration : -1.f, FColor::Yellow, x);
 #define POINT(x, c) DrawDebugPoint(GetWorld(), x, 10, c, !MacroDuration, MacroDuration);
