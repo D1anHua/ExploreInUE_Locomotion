@@ -133,6 +133,7 @@ private:
 	uint8 Safe_WantToSprint  : 1;
 	uint8 Safe_WantsToProne  : 1;
 	uint8 Safe_WantsToClimb  : 1;
+	uint8 Safe_WantsToSlide  : 1;
 	uint8 Safe_PrevWantsToCrouch : 1;
 	uint8 Safe_HadAnimRootMotion : 1;
 	uint8 Safe_TransitionFinished : 1;
@@ -216,18 +217,20 @@ protected:
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 	virtual void PhysCustom(float deltaTime, int32 Iterations) override;
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
-
+	
+public:
+	bool CanSlide()const;
 private:
 	// --------------------------------------- Slide Mode -------------------------------------------------
 	//! Slide Helper Function
 	void EnterSlide(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode);
 	void ExitSlide();
-	bool CanSlide()const;
 	void PhysSlide(float deltaTime, int32 Iterations);
 
 	// --------------------------------------- Prone Mode -------------------------------------------------
 	//! Prone Helper Function
 	void OnTryEnterProne(){Safe_WantsToProne = true;};
+	//! @TODO Delete
 	UFUNCTION(Server, Reliable) void Server_EnterProne();
 	
 	void EnterProne(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode);
@@ -274,7 +277,7 @@ public:
 		enum CompressedFlag
 		{
 			FLAG_Sprint    = 0x10,
-			FLAG_Dash      = 0x20,
+			FLAG_Slide     = 0x20,
 			FLAG_Climb     = 0x40,
 			FLAG_Custom_3  = 0x80,
 		};
@@ -283,6 +286,7 @@ public:
 		uint8 Saved_bWantsToSprint : 1;
 		uint8 Saved_bPressedZippyJump : 1;
 		uint8 Saved_bWantsToClimb : 1;
+		uint8 Saved_bWantsToSlide : 1;
 
 		//! To Save Some Variables
 		uint8 Saved_bHadAnimRootMotion : 1;
@@ -317,13 +321,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SprintReleased();
 	UFUNCTION(BlueprintCallable)
-	void CrouchPressed();
+	void TalesInSlide();
 	UFUNCTION(BlueprintCallable)
-	void CrouchReleased();
+	void TalesOutSlide();
 	UFUNCTION(BlueprintCallable)
-	void ClimbPressed();
+	void TalesInProne();
 	UFUNCTION(BlueprintCallable)
-	void ClimbReleased();
+	void TalesOutProne();
 };
 
 

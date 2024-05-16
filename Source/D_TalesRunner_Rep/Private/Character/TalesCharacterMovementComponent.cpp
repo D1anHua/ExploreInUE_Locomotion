@@ -33,6 +33,7 @@ UTalesCharacterMovementComponent::FSavedmove_Tales::FSavedmove_Tales()
 	Saved_bWantsToSprint = 0;
 	Saved_bWantsToProne = 0;
 	Saved_bPrevWantsToCrouch = 0;
+	Saved_bWantsToSlide = 0;
 }
 
 bool UTalesCharacterMovementComponent::FSavedmove_Tales::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const
@@ -46,6 +47,10 @@ bool UTalesCharacterMovementComponent::FSavedmove_Tales::CanCombineWith(const FS
 	{
 		return false;
 	}
+	if(Saved_bWantsToSlide != NewTalesMove->Saved_bWantsToSlide)
+	{
+		return false;
+	}
 	
 	return FSavedMove_Character::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
@@ -56,6 +61,7 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::Clear()
 	Saved_bWantsToSprint = 0;
 	Saved_bPressedZippyJump = 0;
 	Saved_bWantsToClimb = 0;
+	Saved_bWantsToSlide = 0;
 
 	Saved_bHadAnimRootMotion = 0;
 	Saved_bTransitionFinished = 0;
@@ -71,6 +77,7 @@ uint8 UTalesCharacterMovementComponent::FSavedmove_Tales::GetCompressedFlags() c
 	if(Saved_bWantsToSprint) Result |= FLAG_Sprint;
 	if(Saved_bPressedZippyJump) Result |= FLAG_JumpPressed;
 	if(Saved_bWantsToClimb)  Result |= FLAG_Climb;
+	if(Saved_bWantsToSlide)  Result |= FLAG_Slide;
 
 	return Result;
 }
@@ -88,6 +95,7 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::SetMoveFor(ACharacter* 
 	Saved_bHadAnimRootMotion  = CharacterMovement->Safe_HadAnimRootMotion;
 	Saved_bTransitionFinished = CharacterMovement->Safe_TransitionFinished;
 	Saved_bClimbTransitionFinished = CharacterMovement->Safe_ClimbTransitionFinished;
+	Saved_bWantsToSlide		  = CharacterMovement->Safe_WantsToSlide;
 }
 
 void UTalesCharacterMovementComponent::FSavedmove_Tales::PrepMoveFor(ACharacter* C)
@@ -97,6 +105,7 @@ void UTalesCharacterMovementComponent::FSavedmove_Tales::PrepMoveFor(ACharacter*
 	UTalesCharacterMovementComponent* CharacterMovement = Cast<UTalesCharacterMovementComponent>(C->GetCharacterMovement());
 	CharacterMovement->Safe_WantToSprint      = Saved_bWantsToSprint;
 	CharacterMovement->Safe_WantsToClimb      = Saved_bWantsToClimb;
+	CharacterMovement->Safe_WantsToSlide      = Saved_bWantsToSlide;
 	CharacterMovement->Safe_PrevWantsToCrouch = Saved_bPrevWantsToCrouch;
 	CharacterMovement->Safe_WantsToProne      = Saved_bWantsToProne;
 	CharacterMovement->TalesCharacterOwner->bPressedTalesJump = Saved_bPressedZippyJump;
@@ -142,13 +151,13 @@ void UTalesCharacterMovementComponent::InitializeComponent()
 void UTalesCharacterMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	OwningPlayerAnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+	// @Todo Delete
+	// OwningPlayerAnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
 
-	if(OwningPlayerAnimInstance)
-	{
-		// OwningPlayerAnimInstace->OnMontageEnded.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
-		OwningPlayerAnimInstance->OnMontageBlendingOut.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
-	}
+	// if(OwningPlayerAnimInstance)
+	// {
+	// 	OwningPlayerAnimInstance->OnMontageBlendingOut.AddDynamic(this, &UTalesCharacterMovementComponent::OnClimbMontageEnded);
+	// }
 }
 
 bool UTalesCharacterMovementComponent::IsCustomMovementMode(ECustomMovementMode InCustomMocementMode) const
@@ -257,6 +266,7 @@ void UTalesCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 
 	Safe_WantToSprint = (Flags & FSavedmove_Tales::FLAG_Sprint) != 0;
 	Safe_WantsToClimb = ((Flags & FSavedmove_Tales::FLAG_Climb) != 0);
+	Safe_WantsToSlide = ((Flags & FSavedmove_Tales::FLAG_Slide) != 0);
 }
 
 void UTalesCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -264,7 +274,7 @@ void UTalesCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, con
 {
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 
-	Safe_PrevWantsToCrouch = bWantsToCrouch;
+	// Safe_PrevWantsToCrouch = bWantsToCrouch;
 }
 
 void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
@@ -296,70 +306,76 @@ void UTalesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float 
 	// 	}
 	// }
 
-	// Slide
-	if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_PrevWantsToCrouch)
+	//! Slide和Prone占用SlideFlags and Crouch 两个标志位
+	// Slide  11 表示Slide
+	if(CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		if(CanSlide())
+		if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_WantsToSlide)
 		{
-			SetMovementMode(MOVE_Custom, CMOVE_Slide);
+			if(CanSlide())
+			{
+				SetMovementMode(MOVE_Custom, CMOVE_Slide);
+			}
 		}
-	}
-	else if(IsCustomMovementMode(CMOVE_Slide) && !bWantsToCrouch)
-	{
-		SetMovementMode(MOVE_Walking);
-	}
-
-
-	// Prone
-	if(Safe_WantsToProne)
-	{
-		if(CanProne())
-		{
-			SetMovementMode(MOVE_Custom, CMOVE_Prone);
-			if(!CharacterOwner->HasAuthority()) Server_EnterProne();
-		}
-		Safe_WantsToProne = false;
-	}
-	if(IsCustomMovementMode(CMOVE_Prone) && !bWantsToCrouch)
-	{
-		SetMovementMode(MOVE_Walking);
-	}
-
-	// Mantle
-	if(TalesCharacterOwner->bPressedTalesJump)
-	{
-		if(TryMantle())
-		{
-			TalesCharacterOwner->StopJumping();
-		}
-		else
-		{
-			SLOG("Failed Mantle, Reverting to jump")
-			TalesCharacterOwner->bPressedTalesJump = false;
-			CharacterOwner->bPressedJump = true;
-			CharacterOwner->CheckJumpInput(DeltaSeconds);
-		}
-	}
-
-	// Transition Mantle
-	if(Safe_TransitionFinished)
-	{
-		SLOG("Transition Finished")
-		UE_LOG(LogTemp, Warning, TEXT("FINISHED RM"))
-
-		if(IsValid(TransitionQueuedMontage))
-		{
-			SetMovementMode(MOVE_Flying);
-			CharacterOwner->PlayAnimMontage(TransitionQueuedMontage, TransitionQueuedMontageSpeed);
-			TransitionQueuedMontageSpeed = 0.f;
-			TransitionQueuedMontage = nullptr;
-		}
-		else
+	
+		if(IsCustomMovementMode(CMOVE_Slide) && !bWantsToCrouch && !Safe_WantsToSlide)
 		{
 			SetMovementMode(MOVE_Walking);
 		}
 
-		Safe_TransitionFinished = false;
+
+		// Prone
+		if(MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_WantsToSlide && Safe_WantsToClimb)
+		{
+			if(CanProne())
+			{
+				SetMovementMode(MOVE_Custom, CMOVE_Prone);
+			
+				// if(!CharacterOwner->HasAuthority()) Server_EnterProne();
+			}
+			// Safe_WantsToProne = false;
+		}
+		else if(IsCustomMovementMode(CMOVE_Prone) && !bWantsToCrouch && !Safe_WantsToSlide && !Safe_WantsToClimb)
+		{
+			SetMovementMode(MOVE_Walking);
+		}
+
+		// Mantle
+		if(TalesCharacterOwner->bPressedTalesJump)
+		{
+			if(TryMantle())
+			{
+				TalesCharacterOwner->StopJumping();
+			}
+			else
+			{
+				SLOG("Failed Mantle, Reverting to jump")
+				TalesCharacterOwner->bPressedTalesJump = false;
+				CharacterOwner->bPressedJump = true;
+				CharacterOwner->CheckJumpInput(DeltaSeconds);
+			}
+		}
+
+		// Transition Mantle
+		if(Safe_TransitionFinished)
+		{
+			SLOG("Transition Finished")
+			UE_LOG(LogTemp, Warning, TEXT("FINISHED RM"))
+
+			if(IsValid(TransitionQueuedMontage))
+			{
+				SetMovementMode(MOVE_Flying);
+				CharacterOwner->PlayAnimMontage(TransitionQueuedMontage, TransitionQueuedMontageSpeed);
+				TransitionQueuedMontageSpeed = 0.f;
+				TransitionQueuedMontage = nullptr;
+			}
+			else
+			{
+				SetMovementMode(MOVE_Walking);
+			}
+
+			Safe_TransitionFinished = false;
+		}
 	}
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -465,7 +481,7 @@ void UTalesCharacterMovementComponent::OnRep_Sprint()
 #pragma region Slide
 void UTalesCharacterMovementComponent::EnterSlide(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode)
 {
-	bWantsToCrouch = true;
+	// bWantsToCrouch = true;
 	bOrientRotationToMovement = false;
 	// bUseControllerDesiredRotation = false;
 	Velocity += Velocity.GetSafeNormal2D() * SlideEnterImpulse;
@@ -487,6 +503,7 @@ void UTalesCharacterMovementComponent::ExitSlide()
 {
 	bWantsToCrouch = false;
 	bOrientRotationToMovement = true;
+	TalesOutSlide();
 	// bUseControllerDesiredRotation = true;
 }
 
@@ -708,7 +725,7 @@ void UTalesCharacterMovementComponent::PhysSlide(float deltaTime, int32 Iteratio
 #pragma region Prone
 void UTalesCharacterMovementComponent::Server_EnterProne_Implementation()
 {
-	Safe_WantsToProne = true;
+	// Safe_WantsToProne = true;
 }
 
 void UTalesCharacterMovementComponent::EnterProne(EMovementMode PrevMode, ECustomMovementMode PrevCustomMode)
@@ -723,12 +740,13 @@ void UTalesCharacterMovementComponent::EnterProne(EMovementMode PrevMode, ECusto
 
 bool UTalesCharacterMovementComponent::CanProne() const
 {
-	return IsCustomMovementMode(CMOVE_Slide) || IsMovementMode(MOVE_Walking) && IsCrouching();
+	return IsCustomMovementMode(CMOVE_Slide) || IsMovementMode(MOVE_Walking);
 }
 
 void UTalesCharacterMovementComponent::ExitProne()
 {
-	
+	bWantsToCrouch = false;
+	TalesOutProne();
 }
 
 void UTalesCharacterMovementComponent::PhysProne(float deltaTime, int32 Iterations)
@@ -1452,24 +1470,21 @@ void UTalesCharacterMovementComponent::SprintReleased()
 	Safe_WantToSprint = false;
 }
 
-void UTalesCharacterMovementComponent::CrouchPressed()
+void UTalesCharacterMovementComponent::TalesInSlide()
 {
-	bWantsToCrouch = !bWantsToCrouch;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle_EnterProne, this, &UTalesCharacterMovementComponent::OnTryEnterProne, ProneEnterHoldDuration);
+	Safe_WantsToSlide = true;
 }
 
-void UTalesCharacterMovementComponent::CrouchReleased()
+void UTalesCharacterMovementComponent::TalesOutSlide()
 {
-	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_EnterProne);
+	Safe_WantsToSlide = false;
 }
 
-void UTalesCharacterMovementComponent::ClimbPressed()
+void UTalesCharacterMovementComponent::TalesInProne()
 {
-	Safe_WantsToClimb = true;
 }
 
-void UTalesCharacterMovementComponent::ClimbReleased()
+void UTalesCharacterMovementComponent::TalesOutProne()
 {
-	Safe_WantsToClimb = false;
 }
 #pragma endregion

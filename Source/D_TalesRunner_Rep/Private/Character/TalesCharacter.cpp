@@ -205,6 +205,8 @@ void ATalesCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Started, this, &ATalesCharacter::OnCrouchActionStart);
 	if(ensureAlways(Input_Crouch))   InputComp->BindAction(Input_Crouch, ETriggerEvent::Completed, this, &ATalesCharacter::OnCrouchActionEnd);
 	if(ensureAlways(Input_Dash))	 InputComp->BindAction(Input_Dash, ETriggerEvent::Triggered, this, &ATalesCharacter::OnDashActionStart);
+	if(ensureAlways(Input_Slide))	 InputComp->BindAction(Input_Slide, ETriggerEvent::Triggered, this, &ATalesCharacter::OnSlideStart);
+	if(ensureAlways(Input_Prone))	 InputComp->BindAction(Input_Prone, ETriggerEvent::Triggered, this, &ATalesCharacter::OnProneStart);
 	
 	// Sprint while key is held
 	if(ensureAlways(Input_Sprint))	 InputComp->BindAction(Input_Sprint, ETriggerEvent::Started,   this, &ATalesCharacter::OnSprintActionStart);
@@ -320,6 +322,29 @@ void ATalesCharacter::ClimbHop(const FInputActionInstance& Instance)
 	if(TalesCharacterMovementComponent)
 	{
 		TalesCharacterMovementComponent->RequestHopping();
+	}
+}
+
+void ATalesCharacter::OnSlideStart(const FInputActionInstance& Instance)
+{
+	if(TalesCharacterMovementComponent)
+	{
+		TalesCharacterMovementComponent->TalesInSlide();
+	}
+}
+
+void ATalesCharacter::OnProneStart(const FInputActionInstance& Instance)
+{
+	if(TalesCharacterMovementComponent)
+	{
+		if(TalesCharacterMovementComponent->IsProne())
+		{
+			TalesCharacterMovementComponent->TalesOutProne();
+		}
+		else
+		{
+			TalesCharacterMovementComponent->TalesInProne();
+		}
 	}
 }
 
